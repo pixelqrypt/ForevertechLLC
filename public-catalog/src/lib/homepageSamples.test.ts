@@ -71,4 +71,21 @@ describe('pickHomepageComparisonSamples', () => {
     expect(result.quantum.imageUrl).toBe('/images/ai-gen-1.png');
     expect(result.quantum.isFallback).toBe(true);
   });
+
+  it('ignores non-product placeholder hosts and falls back instead of returning unusable image urls', () => {
+    const result = pickHomepageComparisonSamples(
+      [
+        {
+          id: 'seed-quantum',
+          imageUrl: 'https://picsum.photos/seed/1/512/512',
+          createdAt: '2026-08-12T10:05:00.000Z',
+          isQuantumVerified: true,
+        },
+      ],
+      fallback,
+    );
+
+    expect(result.quantum.imageUrl).toBe('/images/ai-gen-1.png');
+    expect(result.quantum.isFallback).toBe(true);
+  });
 });

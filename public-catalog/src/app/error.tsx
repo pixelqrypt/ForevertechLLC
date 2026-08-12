@@ -31,8 +31,13 @@ export default function Error({
   }, [error]);
 
   return (
-    <html>
-      <body style={{ fontFamily: "system-ui, sans-serif", padding: 24 }}>
+    <div style={{ fontFamily: "system-ui, sans-serif", padding: 24 }}>
+      <div
+        style={{
+          maxWidth: 720,
+          margin: "0 auto",
+        }}
+      >
         <h1 style={{ marginBottom: 12 }}>Something went wrong</h1>
         <p style={{ marginBottom: 8 }}>
           The application encountered an unexpected error. Please try again.
@@ -82,7 +87,7 @@ export default function Error({
         >
           Reload
         </button>
-      </body>
-    </html>
+      </div>
+    </div>
   );
 }

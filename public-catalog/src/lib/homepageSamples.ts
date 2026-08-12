@@ -15,6 +15,18 @@ type GalleryLikeRecord = {
   isQuantumVerified?: boolean;
 };
 
+function isUsableHomepageImage(url: string) {
+  const value = String(url || '').trim();
+  if (!value) return false;
+  if (value.startsWith('/')) return true;
+  try {
+    const parsed = new URL(value);
+    return parsed.hostname !== 'picsum.photos';
+  } catch {
+    return false;
+  }
+}
+
 export function pickHomepageComparisonSamples(
   records: GalleryLikeRecord[],
   fallback: {
@@ -23,7 +35,7 @@ export function pickHomepageComparisonSamples(
   },
 ) {
   const usable = records
-    .filter((record) => typeof record.imageUrl === 'string' && record.imageUrl.trim())
+    .filter((record) => isUsableHomepageImage(record.imageUrl))
     .slice()
     .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
 
