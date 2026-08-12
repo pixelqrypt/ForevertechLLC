@@ -1,0 +1,45 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 900" role="img" aria-labelledby="title desc">
+<title id="title">Real Quantum Generation sample</title>
+<desc id="desc">A luminous fractal-inspired preview card with violet, cyan, and white spiral structures for the homepage comparison.</desc>
+<defs>
+<linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+<stop offset="0%" stop-color="#09090b"/>
+<stop offset="50%" stop-color="#22123b"/>
+<stop offset="100%" stop-color="#0f172a"/>
+</linearGradient>
+<radialGradient id="flareA" cx="28%" cy="32%" r="60%">
+<stop offset="0%" stop-color="#8b5cf6" stop-opacity="0.95"/>
+<stop offset="40%" stop-color="#60a5fa" stop-opacity="0.55"/>
+<stop offset="100%" stop-color="#0b1020" stop-opacity="0"/>
+</radialGradient>
+<radialGradient id="flareB" cx="72%" cy="68%" r="58%">
+<stop offset="0%" stop-color="#22d3ee" stop-opacity="0.92"/>
+<stop offset="38%" stop-color="#c084fc" stop-opacity="0.48"/>
+<stop offset="100%" stop-color="#0b1020" stop-opacity="0"/>
+</radialGradient>
+</defs>
+<rect width="1200" height="900" fill="url(#bg)"/>
+<rect width="1200" height="900" fill="url(#flareA)"/>
+<rect width="1200" height="900" fill="url(#flareB)"/>
+<g fill="none" stroke-linecap="round">
+<path d="M171 626c72-187 192-303 342-333 142-28 240 22 340 145 58 71 119 112 186 122" stroke="#faf5ff" stroke-opacity=".95" stroke-width="18"/>
+<path d="M164 597c115-98 233-153 353-165 134-13 249 26 350 121 78 74 153 113 221 115" stroke="#c4b5fd" stroke-opacity=".88" stroke-width="10"/>
+<path d="M184 667c111-162 241-242 386-241 127 1 243 64 342 183 60 72 113 112 169 126" stroke="#67e8f9" stroke-opacity=".65" stroke-width="8"/>
+<path d="M231 545c95-67 202-97 301-82 107 16 196 72 272 173 45 61 90 96 141 107" stroke="#ffffff" stroke-opacity=".72" stroke-width="6"/>
+<path d="M316 698c48-140 129-232 237-268 111-38 221-10 327 79 66 55 125 89 182 99" stroke="#f5d0fe" stroke-opacity=".55" stroke-width="5"/>
+</g>
+<g fill="#ffffff" fill-opacity=".92">
+<circle cx="280" cy="575" r="6"/>
+<circle cx="360" cy="495" r="5"/>
+<circle cx="505" cy="455" r="7"/>
+<circle cx="666" cy="494" r="5"/>
+<circle cx="784" cy="590" r="7"/>
+<circle cx="949" cy="674" r="5"/>
+<circle cx="1034" cy="706" r="4"/>
+</g>
+<g transform="translate(84 90)">
+<rect width="292" height="90" rx="45" fill="#05070d" fill-opacity=".55" stroke="#ffffff" stroke-opacity=".08"/>
+<text x="30" y="38" fill="#f5f3ff" font-size="18" font-family="Arial, Helvetica, sans-serif" letter-spacing="2">REAL QUANTUM GENERATION</text>
+<text x="30" y="63" fill="#d4d4d8" font-size="15" font-family="Arial, Helvetica, sans-serif">Recorded provenance • premium sample preview</text>
+</g>
+</svg>

@@ -17,6 +17,31 @@ vi.mock('@/components/TwitterFeed', () => ({
   TwitterFeed: () => <div>Twitter Feed</div>,
 }));
 
+vi.mock('@/lib/galleryStore', () => ({
+  getGalleryItems: () => [
+    {
+      id: 'gallery-1',
+      imageUrl: '/images/user-generated-preview.svg',
+      prompt: 'User generated spiral bloom tee',
+      userName: 'Ari',
+      catalogName: "Ari's Public Catalog",
+      isFavorite: false,
+      isQuantumVerified: false,
+      createdAt: '2026-08-12T00:00:00.000Z',
+    },
+    {
+      id: 'gallery-2',
+      imageUrl: '/images/user-generated-preview-2.svg',
+      prompt: 'Community neon streetwear design',
+      userName: 'Mila',
+      catalogName: "Mila's Public Catalog",
+      isFavorite: true,
+      isQuantumVerified: true,
+      createdAt: '2026-08-11T00:00:00.000Z',
+    },
+  ],
+}));
+
 vi.mock('fs', () => ({
   default: {
     existsSync: vi.fn(() => false),
@@ -27,11 +52,17 @@ vi.mock('fs', () => ({
 }));
 
 describe('Home page', () => {
-  it('uses customer-first hero copy and entry actions', async () => {
+  it('shows compact admin, user, and quantum comparison boxes for new visitors', async () => {
     render(await Home());
 
-    expect(screen.getByRole('heading', { name: /create your one-of-one fractal tee/i })).toBeInTheDocument();
-    expect(screen.getByRole('link', { name: 'Start Creating' })).toHaveAttribute('href', '/studio');
-    expect(screen.getByRole('link', { name: 'Browse Gallery' })).toHaveAttribute('href', '/gallery');
+    expect(screen.getByRole('heading', { name: /discover admin drops, community designs, and quantum builds/i })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'Admin Products' })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'User Generated Products' })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'Real Quantum Generation vs Standard Generation' })).toBeInTheDocument();
+    expect(screen.getAllByText('Latest Build').length).toBeGreaterThan(0);
+    expect(screen.getAllByText('Public Gallery').length).toBeGreaterThan(0);
+    expect(screen.getAllByText('Real Quantum Generation').length).toBeGreaterThan(0);
+    expect(screen.getAllByText('Standard Generation').length).toBeGreaterThan(0);
+    expect(screen.queryByText('Catalog Grid')).not.toBeInTheDocument();
   });
 });

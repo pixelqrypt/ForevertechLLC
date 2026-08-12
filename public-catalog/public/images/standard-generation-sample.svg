@@ -1,0 +1,44 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 900" role="img" aria-labelledby="title desc">
+<title id="title">Standard Generation sample</title>
+<desc id="desc">A cleaner fast-generation preview card with smooth gradients and structured shapes for the homepage comparison.</desc>
+<defs>
+<linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+<stop offset="0%" stop-color="#09090b"/>
+<stop offset="45%" stop-color="#111827"/>
+<stop offset="100%" stop-color="#0f172a"/>
+</linearGradient>
+<linearGradient id="orbA" x1="0" y1="0" x2="1" y2="1">
+<stop offset="0%" stop-color="#38bdf8"/>
+<stop offset="100%" stop-color="#2563eb"/>
+</linearGradient>
+<linearGradient id="orbB" x1="0" y1="1" x2="1" y2="0">
+<stop offset="0%" stop-color="#fb7185"/>
+<stop offset="100%" stop-color="#f59e0b"/>
+</linearGradient>
+<linearGradient id="orbC" x1="0" y1="0" x2="1" y2="1">
+<stop offset="0%" stop-color="#a3e635"/>
+<stop offset="100%" stop-color="#14b8a6"/>
+</linearGradient>
+</defs>
+<rect width="1200" height="900" fill="url(#bg)"/>
+<g opacity=".95">
+<circle cx="298" cy="332" r="172" fill="url(#orbA)"/>
+<circle cx="816" cy="294" r="145" fill="url(#orbB)"/>
+<circle cx="660" cy="625" r="198" fill="url(#orbC)"/>
+</g>
+<g fill="none" stroke-linecap="round" stroke-opacity=".62">
+<path d="M151 713c126-131 241-194 352-196 110-1 221 46 341 143 77 63 157 98 236 106" stroke="#ffffff" stroke-width="10"/>
+<path d="M213 246c91 39 180 59 268 55 100-4 194-39 291-112 82-62 167-94 250-94" stroke="#e5e7eb" stroke-width="6"/>
+<path d="M157 544c143-51 255-57 352-25 107 35 197 106 286 228" stroke="#bfdbfe" stroke-width="8"/>
+</g>
+<g fill="#ffffff" fill-opacity=".85">
+<rect x="228" y="274" width="153" height="24" rx="12"/>
+<rect x="758" y="248" width="128" height="20" rx="10"/>
+<rect x="624" y="621" width="167" height="24" rx="12"/>
+</g>
+<g transform="translate(84 90)">
+<rect width="262" height="90" rx="45" fill="#05070d" fill-opacity=".55" stroke="#ffffff" stroke-opacity=".08"/>
+<text x="30" y="38" fill="#f5f3ff" font-size="18" font-family="Arial, Helvetica, sans-serif" letter-spacing="2">STANDARD GENERATION</text>
+<text x="30" y="63" fill="#d4d4d8" font-size="15" font-family="Arial, Helvetica, sans-serif">Fast storefront preview • streamlined sample</text>
+</g>
+</svg>
