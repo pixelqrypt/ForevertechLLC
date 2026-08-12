@@ -4,6 +4,7 @@ import fs from 'fs';
 import path from 'path';
 import { getGalleryItems } from '@/lib/galleryStore';
 import Image from 'next/image';
+import { loadHomepageComparisonSamples } from '@/lib/homepageSamples';
 
 type CatalogPost = {
   id: string;
@@ -208,6 +209,7 @@ function ProductBox({
 
 export default async function Home() {
   const adminPosts = await getAdminPosts();
+  const comparisonSamples = await loadHomepageComparisonSamples();
   const heroImageUrl = resolvePostMediaUrl(adminPosts[0]) || '/images/ai-gen-1.png';
   const adminCards: HomeCard[] = adminPosts.slice(0, 4).map((post, index) => ({
     id: post.id,
@@ -304,7 +306,7 @@ export default async function Home() {
             <div className="overflow-hidden rounded-2xl border border-violet-500/30 bg-black/50">
               <div className="relative aspect-[4/3] overflow-hidden">
                 <Image
-                  src="/images/quantum-generation-sample.svg"
+                  src={comparisonSamples.quantum.imageUrl}
                   alt="Real Quantum Generation sample"
                   fill
                   sizes="(min-width: 1024px) 50vw, 100vw"
@@ -315,15 +317,17 @@ export default async function Home() {
                 </div>
               </div>
               <div className="space-y-2 p-4">
-                <div className="text-base font-semibold text-white">Recorded quantum-backed sample</div>
-                <div className="text-sm text-zinc-400">Built to represent the verified, provenance-focused path for premium story-driven creations.</div>
+                <div className="text-base font-semibold text-white">
+                  {comparisonSamples.quantum.isFallback ? 'Pinned studio quantum sample' : 'Latest studio quantum sample'}
+                </div>
+                <div className="text-sm text-zinc-400">{comparisonSamples.quantum.description}</div>
               </div>
             </div>
 
             <div className="overflow-hidden rounded-2xl border border-zinc-800 bg-black/50">
               <div className="relative aspect-[4/3] overflow-hidden">
                 <Image
-                  src="/images/standard-generation-sample.svg"
+                  src={comparisonSamples.standard.imageUrl}
                   alt="Standard Generation sample"
                   fill
                   sizes="(min-width: 1024px) 50vw, 100vw"
@@ -334,8 +338,10 @@ export default async function Home() {
                 </div>
               </div>
               <div className="space-y-2 p-4">
-                <div className="text-base font-semibold text-white">Fast standard sample</div>
-                <div className="text-sm text-zinc-400">Shows the normal streamlined generation path for quick preview, customization, and shopping.</div>
+                <div className="text-base font-semibold text-white">
+                  {comparisonSamples.standard.isFallback ? 'Pinned studio standard sample' : 'Latest studio standard sample'}
+                </div>
+                <div className="text-sm text-zinc-400">{comparisonSamples.standard.description}</div>
               </div>
             </div>
           </div>
