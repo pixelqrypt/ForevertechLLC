@@ -1,7 +1,7 @@
 import { Header } from '@/components/Header';
 import { CatalogGrid } from '@/components/CatalogGrid';
-import { TwitterFeed } from '@/components/TwitterFeed';
 import Link from 'next/link';
+import Image from 'next/image';
 import fs from 'fs';
 import path from 'path';
 
@@ -98,11 +98,13 @@ export default async function Home() {
             {/* Main Hero - Latest Drop */}
             <div className="relative col-span-1 md:col-span-2 aspect-video w-full overflow-hidden rounded-2xl border border-zinc-800 shadow-2xl shadow-primary/10 group">
               {heroImageUrl ? (
-                <img
+                <Image
                   src={heroImageUrl}
                   alt="Latest published design"
+                  fill
+                  sizes="(min-width: 768px) 66vw, 100vw"
                   className="absolute inset-0 h-full w-full object-cover transition-transform duration-700 group-hover:scale-105"
-                  loading="eager"
+                  priority
                 />
               ) : (
                 <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,rgba(99,102,241,0.20),transparent_55%),radial-gradient(ellipse_at_bottom,rgba(16,185,129,0.12),transparent_55%)]" />
@@ -138,43 +140,75 @@ export default async function Home() {
               </div>
             </div>
 
-            {/* Side Hero - Latest AI Generation */}
-            <div className="relative col-span-1 aspect-video md:aspect-auto w-full overflow-hidden rounded-2xl border border-zinc-800 shadow-xl bg-zinc-900 flex flex-col">
-              <div className="absolute top-3 left-3 z-10">
-                <span className="inline-flex items-center rounded-full bg-black/60 px-3 py-1 text-xs font-medium text-white backdrop-blur-md border border-white/10">
-                  <span className="mr-1.5 relative flex h-2 w-2">
-                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
-                    <span className="relative inline-flex rounded-full h-2 w-2 bg-green-500"></span>
+            {/* Side Hero - Quick Summary */}
+            <div className="col-span-1 overflow-hidden rounded-2xl border border-zinc-800 bg-zinc-950 shadow-xl">
+              <div className="flex h-full flex-col justify-between gap-6 p-6">
+                <div className="space-y-3">
+                  <span className="inline-flex items-center rounded-full border border-emerald-500/20 bg-emerald-500/10 px-3 py-1 text-xs font-medium text-emerald-300">
+                    Clean Build Flow
                   </span>
-                  Newest Generation
-                </span>
-              </div>
-              {heroImageUrl ? (
-                <img
-                  src={heroImageUrl}
-                  alt="Newest AI generated quantum design"
-                  className="absolute inset-0 h-full w-full object-cover transition-transform duration-700 group-hover:scale-105"
-                  loading="eager"
-                />
-              ) : (
-                <div className="h-full w-full bg-[radial-gradient(ellipse_at_top,rgba(99,102,241,0.18),transparent_55%),radial-gradient(ellipse_at_bottom,rgba(16,185,129,0.10),transparent_55%)]" />
-              )}
-              <div className="absolute bottom-0 inset-x-0 bg-gradient-to-t from-black/90 to-transparent p-4">
-                 <p className="text-sm font-medium text-white">Fresh From The Studio</p>
-                 <p className="text-xs text-zinc-400">Create, preview, customize, and order from one flow</p>
+                  <h2 className="text-2xl font-semibold tracking-tight text-white">One path from prompt to product.</h2>
+                  <p className="text-sm leading-6 text-zinc-400">
+                    Generate an original visual, refine it on merch, and move into checkout without bouncing between
+                    disconnected tools or duplicate steps.
+                  </p>
+                </div>
+
+                <div className="space-y-3">
+                  {[
+                    'Generate a design from your prompt',
+                    'Preview the artwork on the product before ordering',
+                    'Finish with a simpler cart and checkout flow',
+                  ].map((item) => (
+                    <div
+                      key={item}
+                      className="rounded-xl border border-white/8 bg-white/[0.03] px-4 py-3 text-sm text-zinc-200"
+                    >
+                      {item}
+                    </div>
+                  ))}
+                </div>
               </div>
             </div>
           </div>
         </section>
 
         <CatalogGrid initialPosts={initialPosts} />
-        
-        <section className="container mx-auto px-4 border-t border-gray-800 pt-12">
-          <div className="text-center mb-8">
-            <h2 className="text-3xl font-bold tracking-tight mb-2">From The ForeverTech Feed</h2>
-            <p className="text-gray-400">Recent updates and product activity from the public brand feed</p>
+
+        <section className="container mx-auto border-t border-zinc-800 px-4 pt-12">
+          <div className="mx-auto max-w-5xl">
+            <div className="mb-8 text-center">
+              <h2 className="text-3xl font-bold tracking-tight text-white">Create In Three Steps</h2>
+              <p className="mt-2 text-zinc-400">
+                The storefront stays focused on the essentials so customers always know what to do next.
+              </p>
+            </div>
+
+            <div className="grid gap-4 md:grid-cols-3">
+              {[
+                {
+                  title: '1. Start With A Prompt',
+                  description: 'Describe the mood, colors, or idea you want and open the generator in a single click.',
+                },
+                {
+                  title: '2. Review The Preview',
+                  description: 'Check the finished art on the product before committing to customization or purchase.',
+                },
+                {
+                  title: '3. Customize And Order',
+                  description: 'Adjust the final product, add it to cart, and move through checkout with less friction.',
+                },
+              ].map((step) => (
+                <div
+                  key={step.title}
+                  className="rounded-2xl border border-zinc-800 bg-zinc-950/70 p-6 shadow-lg shadow-black/20"
+                >
+                  <h3 className="text-lg font-semibold text-white">{step.title}</h3>
+                  <p className="mt-3 text-sm leading-6 text-zinc-400">{step.description}</p>
+                </div>
+              ))}
+            </div>
           </div>
-          <TwitterFeed />
         </section>
       </main>
     </div>

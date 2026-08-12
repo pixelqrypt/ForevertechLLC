@@ -34,4 +34,12 @@ describe('Home page', () => {
     expect(screen.getByRole('link', { name: 'Start Creating' })).toHaveAttribute('href', '/studio');
     expect(screen.getByRole('link', { name: 'Browse Gallery' })).toHaveAttribute('href', '/gallery');
   });
+
+  it('avoids duplicating the hero preview and uses a cleaner supporting section', async () => {
+    render(await Home());
+
+    expect(screen.getAllByRole('img')).toHaveLength(1);
+    expect(screen.queryByText(/from the forevertech feed/i)).not.toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: /create in three steps/i })).toBeInTheDocument();
+  });
 });

@@ -105,6 +105,8 @@ export function CatalogGrid({ initialPosts }: CatalogGridProps) {
   }, [displayPosts, searchQuery, activeFilters]);
 
   const activeFilterCount = (activeFilters.sort !== 'newest' ? 1 : 0) + (activeFilters.type !== 'all' ? 1 : 0);
+  const hasPublishedBuilds = posts.length > 0;
+  const hasActiveSearch = searchQuery.trim().length > 0 || activeFilterCount > 0;
 
   return (
     <main className="container mx-auto px-4 py-8">
@@ -247,11 +249,16 @@ export function CatalogGrid({ initialPosts }: CatalogGridProps) {
 
       {filteredPosts.length === 0 && (
         <div className="flex h-64 flex-col items-center justify-center rounded-2xl border border-dashed border-zinc-800 bg-zinc-900/30">
-          <Loader2 className="mb-2 h-8 w-8 animate-spin text-zinc-500" />
+          {hasPublishedBuilds ? <Loader2 className="mb-2 h-8 w-8 animate-spin text-zinc-500" /> : null}
           <p className="text-zinc-400">
-            {posts.length === 0 ? "Loading catalog..." : "No assets found matching your filters."}
+            {hasPublishedBuilds ? 'No assets found matching your filters.' : 'No builds published yet.'}
           </p>
-          {posts.length > 0 && (
+          {!hasPublishedBuilds ? (
+            <p className="mt-2 max-w-md text-center text-sm text-zinc-500">
+              New releases will show up here once the next set of generated products is ready.
+            </p>
+          ) : null}
+          {hasActiveSearch && hasPublishedBuilds && (
              <button 
                onClick={() => { setSearchQuery(''); setActiveFilters({ sort: 'newest', type: 'all' }); }}
                className="mt-4 text-sm text-primary hover:underline"
