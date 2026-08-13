@@ -8,6 +8,12 @@ export async function GET() {
   const uptimeSec = Math.round(process.uptime());
   const env = process.env as Record<string, string | undefined>;
   const cfg = getAiGeneratorsConfig();
+  const siteUrl = (env.NEXT_PUBLIC_SITE_URL || "").trim();
+  const quantumPriceRaw = (env.STRIPE_QUANTUM_GENERATION_PRICE_CENTS || "").trim();
+  const quantumGenerationPriceCents = quantumPriceRaw ? Number(quantumPriceRaw) : 999;
+  const normalizedQuantumGenerationPriceCents = Number.isFinite(quantumGenerationPriceCents)
+    ? Math.max(0, Math.min(100_000, Math.trunc(quantumGenerationPriceCents)))
+    : 999;
   const isLocalHost = (value: string) => {
     try {
       const u = new URL(value);
@@ -38,6 +44,9 @@ export async function GET() {
         stripe: {
           hasSecretKey: Boolean(env.STRIPE_SECRET_KEY),
           hasWebhookSecret: Boolean(env.STRIPE_WEBHOOK_SECRET),
+          hasSiteUrl: Boolean(siteUrl),
+          quantumGenerationPriceCents: normalizedQuantumGenerationPriceCents,
+          quantumCheckoutReady: Boolean(env.STRIPE_SECRET_KEY && siteUrl),
         },
         printify: {
           hasApiToken: Boolean(env.PRINTIFY_API_TOKEN),

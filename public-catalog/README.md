@@ -1,6 +1,22 @@
 # ForeverTech Public Catalog
 
-## 1. Architecture Decisions
+## 1. Local Setup
+
+### Commerce Runtime
+- Copy `.env.example` to `.env.local`.
+- Set `NEXT_PUBLIC_SITE_URL` to the public origin for the running app. Local dev uses `http://localhost:3001`.
+- Set `STRIPE_SECRET_KEY` for hosted checkout flows.
+- Set `STRIPE_WEBHOOK_SECRET` if you are testing webhook fulfillment locally.
+- `STRIPE_QUANTUM_GENERATION_PRICE_CENTS` is optional and defaults to `999` for the Studio real-quantum unlock.
+- Verify runtime readiness at `GET /api/health`.
+
+### Quantum Checkout Readiness
+- `checks.integrations.stripe.hasSecretKey` must be `true`.
+- `checks.integrations.stripe.hasSiteUrl` must be `true`.
+- `checks.integrations.stripe.quantumCheckoutReady` must be `true`.
+- When those are set, the Studio `$9.99` real quantum action can create a live Stripe Checkout session and return to `/studio?quantum_session_id=...`.
+
+## 2. Architecture Decisions
 
 ### Tech Stack
 - **Framework**: Next.js 14+ (App Router) for robust SSR/SSG and SEO capabilities.
@@ -17,7 +33,7 @@
 - **Real-Time Updates**: Implemented using Server-Sent Events (SSE) via a dedicated `/api/events` endpoint on the backend. This avoids polling overhead and ensures immediate content availability.
 - **Lazy Loading**: Native Next.js `Image` component handles lazy loading and optimization of media assets.
 
-## 2. API Contracts
+## 3. API Contracts
 
 ### `GET /api/catalog/posts`
 - **Description**: Fetches the complete history of posts for the initial catalog view.
@@ -46,7 +62,7 @@
   - `new_post`: Emitted when a new post is created via the Unified Composer.
     - **Payload**: Same structure as a single post item above.
 
-## 3. Testing Strategy
+## 4. Testing Strategy
 
 ### Unit Testing
 - **Tools**: Vitest + React Testing Library
@@ -76,7 +92,7 @@
 - **Test data**:
   - Diverse customer profiles live in `tests/e2e/fixtures/customerProfiles.ts` (US/GB/JP examples).
 
-## 4. Performance Benchmarks (Targets)
+## 5. Performance Benchmarks (Targets)
 
 - **Lighthouse Performance Score**: > 90
 - **First Contentful Paint (FCP)**: < 1.5s
@@ -89,7 +105,7 @@
 - **Code Splitting**: Automatic per-route code splitting.
 - **Font Optimization**: Using `next/font` to self-host and preload fonts.
 
-## 5. Accessibility Audit Results (Target: WCAG 2.1 AA)
+## 6. Accessibility Audit Results (Target: WCAG 2.1 AA)
 
 - **Color Contrast**: All text elements meet 4.5:1 ratio.
 - **Keyboard Navigation**: All interactive elements (buttons, links) are focusable and have visible focus states.
@@ -98,7 +114,7 @@
   - Semantic HTML (`main`, `header`, `nav`, `article`) used throughout.
   - ARIA labels used for icon-only buttons.
 
-## 6. Analytics Implementation Details
+## 7. Analytics Implementation Details
 
 - **Provider**: Google Analytics 4 (GA4) via `@next/third-parties/google`.
 - **Events Tracked**:
