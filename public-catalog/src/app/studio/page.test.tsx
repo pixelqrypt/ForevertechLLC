@@ -75,6 +75,7 @@ class EventSourceMock {
 describe('StudioPage calendar date range', () => {
   beforeEach(() => {
     mockSearchParams = new URLSearchParams();
+    window.localStorage.clear();
     vi.stubGlobal('EventSource', EventSourceMock);
     global.fetch = vi.fn(async (input: RequestInfo | URL) => {
       const url = typeof input === 'string' ? input : input instanceof URL ? input.toString() : input.url;
@@ -125,6 +126,7 @@ describe('StudioPage calendar date range', () => {
   });
 
   afterEach(() => {
+    window.localStorage.clear();
     vi.restoreAllMocks();
   });
 
@@ -242,6 +244,139 @@ describe('StudioPage calendar date range', () => {
       expect(checkoutRequested).toBe(true);
     });
     expect(screen.queryByText('Real quantum generation unlocked for this prompt.')).not.toBeInTheDocument();
+  });
+
+  it('confirms a returned quantum checkout session and unlocks the paid prompt', async () => {
+    mockSearchParams = new URLSearchParams('quantum_session_id=cs_quantum_1');
+    window.localStorage.setItem('foreverteck.studio.pendingQuantumPrompt', 'quantum wormhole fractal');
+    const replaceStateSpy = vi.spyOn(window.history, 'replaceState');
+
+    global.fetch = vi.fn(async (input: RequestInfo | URL) => {
+      const url = typeof input === 'string' ? input : input instanceof URL ? input.toString() : input.url;
+      if (url.includes('/api/auth/session')) {
+        return {
+          ok: true,
+          json: async () => ({
+            twitter: { authenticated: false },
+            telegram: { authenticated: false },
+            instagram: { authenticated: false },
+            tiktok: { authenticated: false },
+            youtube: { authenticated: false },
+            reddit: { authenticated: true, screenName: 'reddit_user' },
+            discord: { authenticated: true, screenName: 'Discord connected' },
+            rss: { authenticated: true, screenName: 'RSS feed' },
+          }),
+        } as Response;
+      }
+      if (url.includes('/api/chat/history')) {
+        return { ok: true, json: async () => ({ success: true, data: { messages: [] } }) } as Response;
+      }
+      if (url.includes('/api/catalog/posts')) {
+        return { ok: true, json: async () => ({ posts: [] }) } as Response;
+      }
+      if (url.includes('/api/printify/mockups')) {
+        return {
+          ok: true,
+          json: async () => ({
+            success: true,
+            designHash: 'hash_test',
+            status: 'pending',
+            mockups: { frontUrl: undefined, backUrl: undefined, leftUrl: undefined, rightUrl: undefined },
+          }),
+        } as Response;
+      }
+      if (url.includes('/api/quantum/confirm')) {
+        return {
+          ok: true,
+          status: 200,
+          json: async () => ({ success: true, unlocked: true, sessionId: 'cs_quantum_1' }),
+        } as Response;
+      }
+      return { ok: true, json: async () => ({ success: true }) } as Response;
+    }) as typeof fetch;
+
+    await renderStudioPage();
+
+    await waitFor(() => {
+      expect(
+        (global.fetch as unknown as { mock: { calls: Array<[RequestInfo | URL, RequestInit | undefined]> } }).mock.calls.some((c) =>
+          String(c[0]).includes('/api/quantum/confirm'),
+        ),
+      ).toBe(true);
+    });
+
+    await waitFor(() => {
+      expect(screen.getByText('Real quantum generation unlocked. Run the generation to create your verified origin record.')).toBeInTheDocument();
+    });
+    expect(screen.getByRole('button', { name: 'Generate with Real Quantum Computer' })).toBeInTheDocument();
+    expect(window.localStorage.getItem('foreverteck.studio.quantumUnlock')).toContain('cs_quantum_1');
+    expect(replaceStateSpy).toHaveBeenCalledWith({}, '', '/studio');
+  });
+
+  it('shows a friendly error when the returned checkout does not match the paid prompt', async () => {
+    mockSearchParams = new URLSearchParams('quantum_session_id=cs_quantum_1');
+    window.localStorage.setItem('foreverteck.studio.pendingQuantumPrompt', 'quantum wormhole fractal');
+    const replaceStateSpy = vi.spyOn(window.history, 'replaceState');
+
+    global.fetch = vi.fn(async (input: RequestInfo | URL) => {
+      const url = typeof input === 'string' ? input : input instanceof URL ? input.toString() : input.url;
+      if (url.includes('/api/auth/session')) {
+        return {
+          ok: true,
+          json: async () => ({
+            twitter: { authenticated: false },
+            telegram: { authenticated: false },
+            instagram: { authenticated: false },
+            tiktok: { authenticated: false },
+            youtube: { authenticated: false },
+            reddit: { authenticated: true, screenName: 'reddit_user' },
+            discord: { authenticated: true, screenName: 'Discord connected' },
+            rss: { authenticated: true, screenName: 'RSS feed' },
+          }),
+        } as Response;
+      }
+      if (url.includes('/api/chat/history')) {
+        return { ok: true, json: async () => ({ success: true, data: { messages: [] } }) } as Response;
+      }
+      if (url.includes('/api/catalog/posts')) {
+        return { ok: true, json: async () => ({ posts: [] }) } as Response;
+      }
+      if (url.includes('/api/printify/mockups')) {
+        return {
+          ok: true,
+          json: async () => ({
+            success: true,
+            designHash: 'hash_test',
+            status: 'pending',
+            mockups: { frontUrl: undefined, backUrl: undefined, leftUrl: undefined, rightUrl: undefined },
+          }),
+        } as Response;
+      }
+      if (url.includes('/api/quantum/confirm')) {
+        return {
+          ok: false,
+          status: 403,
+          json: async () => ({ success: false, error: 'prompt_mismatch' }),
+        } as Response;
+      }
+      return { ok: true, json: async () => ({ success: true }) } as Response;
+    }) as typeof fetch;
+
+    await renderStudioPage();
+
+    await waitFor(() => {
+      expect(
+        (global.fetch as unknown as { mock: { calls: Array<[RequestInfo | URL, RequestInit | undefined]> } }).mock.calls.some((c) =>
+          String(c[0]).includes('/api/quantum/confirm'),
+        ),
+      ).toBe(true);
+    });
+
+    await waitFor(() => {
+      expect(screen.getByText('This checkout only unlocks the exact prompt you paid for. Start a new quantum checkout for this prompt.')).toBeInTheDocument();
+    });
+    expect(screen.queryByText('prompt_mismatch')).not.toBeInTheDocument();
+    expect(replaceStateSpy).toHaveBeenCalledWith({}, '', '/studio');
   });
 
   it('shows a separate premium creator upgrade path', async () => {

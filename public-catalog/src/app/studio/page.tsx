@@ -1,6 +1,6 @@
 'use client';
 
-import { Suspense, useEffect, useMemo, useState } from 'react';
+import { Suspense, useEffect, useMemo, useRef, useState } from 'react';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
 import { Header } from '../../components/Header';
@@ -97,6 +97,31 @@ function clearStoredQuantumUnlock() {
   localStorage.removeItem(QUANTUM_UNLOCK_KEY);
 }
 
+function clearQuantumCheckoutReturnQuery() {
+  if (typeof window === 'undefined') return;
+  window.history.replaceState({}, '', '/studio');
+}
+
+function formatQuantumCheckoutError(error: string): string {
+  switch (error) {
+    case 'missing_quantum_prompt':
+    case 'missing_params':
+      return 'We could not match this Stripe return to a saved prompt. Start the quantum checkout again.';
+    case 'not_paid':
+      return 'Payment is still incomplete. Complete checkout, then return to the Studio.';
+    case 'device_mismatch':
+      return 'This checkout was started on a different device. Start a new quantum checkout on this device.';
+    case 'prompt_mismatch':
+      return 'This checkout only unlocks the exact prompt you paid for. Start a new quantum checkout for this prompt.';
+    case 'invalid_quantum_session':
+      return 'This checkout session is not valid for real quantum generation. Start a new quantum checkout.';
+    case 'confirm_failed':
+      return 'We could not confirm your quantum checkout. Try again.';
+    default:
+      return error;
+  }
+}
+
 export default function StudioPage() {
   return (
     <Suspense fallback={null}>
@@ -182,6 +207,8 @@ function StudioPageInner() {
   const [chatInput, setChatInput] = useState<string>('');
   const [chatConnected, setChatConnected] = useState<boolean>(false);
   const [chatMessages, setChatMessages] = useState<Array<{ id: string; time: string; user: string; text: string; assetUrl?: string }>>([]);
+  const promptRef = useRef(prompt);
+  const quantumConfirmStatusRef = useRef(quantumConfirmStatus);
 
   const [pipelineStage, setPipelineStage] = useState<string>('');
   const [progress, setProgress] = useState<number>(0);
@@ -252,6 +279,14 @@ function StudioPageInner() {
   }, []);
 
   useEffect(() => {
+    promptRef.current = prompt;
+  }, [prompt]);
+
+  useEffect(() => {
+    quantumConfirmStatusRef.current = quantumConfirmStatus;
+  }, [quantumConfirmStatus]);
+
+  useEffect(() => {
     if (!hydrated) return;
 
     const storedUnlock = getStoredQuantumUnlock();
@@ -275,9 +310,9 @@ function StudioPageInner() {
   useEffect(() => {
     if (!hydrated) return;
     if (!quantumSessionIdFromUrl) return;
-    if (quantumConfirmStatus !== 'idle') return;
+    if (quantumConfirmStatusRef.current !== 'idle') return;
 
-    const pendingPrompt = getPendingQuantumPrompt() || normalizeStudioQuantumPrompt(prompt);
+    const pendingPrompt = getPendingQuantumPrompt() || normalizeStudioQuantumPrompt(promptRef.current);
     if (!pendingPrompt) {
       setQuantumConfirmStatus('error');
       setQuantumConfirmError('missing_quantum_prompt');
@@ -297,8 +332,10 @@ function StudioPageInner() {
         const json = await res.json().catch(() => null);
         if (!res.ok || !json?.success) {
           if (cancelled) return;
+          const errorCode = String(json?.error || `HTTP_${res.status}`);
           setQuantumConfirmStatus('error');
-          setQuantumConfirmError(String(json?.error || `HTTP_${res.status}`));
+          setQuantumConfirmError(formatQuantumCheckoutError(errorCode));
+          clearQuantumCheckoutReturnQuery();
           return;
         }
         if (cancelled) return;
@@ -311,20 +348,19 @@ function StudioPageInner() {
         clearPendingQuantumPrompt();
         setGenerationError(null);
         addLog('Real quantum checkout confirmed for this prompt.', 'success', 'I_Q_CONFIRMED');
-        if (typeof window !== 'undefined') {
-          window.history.replaceState({}, '', '/studio');
-        }
+        clearQuantumCheckoutReturnQuery();
       } catch (e) {
         if (cancelled) return;
         setQuantumConfirmStatus('error');
-        setQuantumConfirmError(e instanceof Error ? e.message : 'confirm_failed');
+        setQuantumConfirmError(formatQuantumCheckoutError(e instanceof Error ? e.message : 'confirm_failed'));
+        clearQuantumCheckoutReturnQuery();
       }
     };
     run();
     return () => {
       cancelled = true;
     };
-  }, [hydrated, prompt, quantumConfirmStatus, quantumSessionIdFromUrl]);
+  }, [hydrated, quantumSessionIdFromUrl]);
 
   useEffect(() => {
     if (!hydrated) return;
@@ -637,6 +673,7 @@ function StudioPageInner() {
     if (!prompt || isGenerating) return;
     if (generationMode === 'real_quantum' && !quantumUnlocked) {
       setGenerationError(null);
+      setQuantumConfirmError(null);
       setQuantumCheckoutStatus('starting');
       setQuantumCheckoutError(null);
       try {
