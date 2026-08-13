@@ -13,10 +13,6 @@ vi.mock('@/components/CatalogGrid', () => ({
   CatalogGrid: () => <div>Catalog Grid</div>,
 }));
 
-vi.mock('@/components/TwitterFeed', () => ({
-  TwitterFeed: () => <div>Twitter Feed</div>,
-}));
-
 vi.mock('fs', () => ({
   default: {
     existsSync: vi.fn(() => false),
@@ -27,19 +23,22 @@ vi.mock('fs', () => ({
 }));
 
 describe('Home page', () => {
-  it('uses customer-first hero copy and entry actions', async () => {
+  it('uses the luxury hero copy and premium entry actions', async () => {
     render(await Home());
 
-    expect(screen.getByRole('heading', { name: /create your one-of-one fractal tee/i })).toBeInTheDocument();
-    expect(screen.getByRole('link', { name: 'Start Creating' })).toHaveAttribute('href', '/studio');
-    expect(screen.getByRole('link', { name: 'Browse Gallery' })).toHaveAttribute('href', '/gallery');
+    expect(screen.getByRole('heading', { name: /wear a design no one else has/i })).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'Create Your Piece' })).toHaveAttribute('href', '/studio');
+    expect(screen.getByRole('link', { name: 'Explore The Collection' })).toHaveAttribute('href', '/gallery');
   });
 
-  it('avoids duplicating the hero preview and uses a cleaner supporting section', async () => {
+  it('renders the luxury storytelling sections instead of the old utility layout', async () => {
     render(await Home());
 
-    expect(screen.getAllByRole('img')).toHaveLength(1);
-    expect(screen.queryByText(/from the forevertech feed/i)).not.toBeInTheDocument();
-    expect(screen.getByRole('heading', { name: /create in three steps/i })).toBeInTheDocument();
+    expect(screen.getByText(/original designs/i)).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: /selected pieces/i })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: /designed to feel like yours/i })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: /create something worth wearing/i })).toBeInTheDocument();
+    expect(screen.getAllByRole('link', { name: /explore piece/i })).toHaveLength(3);
+    expect(screen.queryByText(/create your one-of-one fractal tee/i)).not.toBeInTheDocument();
   });
 });
