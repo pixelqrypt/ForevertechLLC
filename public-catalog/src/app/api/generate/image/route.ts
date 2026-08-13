@@ -14,6 +14,7 @@ import { getQuantumSeed } from "@/lib/quantum-seed";
 import { calculateFractalDimension } from "@/lib/fractal-dimension";
 import { paletteProfileFromPrompt } from "@/lib/paletteProfile";
 import { buildNarrativeRenderSettings, type NarrativeRenderSettings } from "@/lib/narrativeRenderSettings";
+import { verifyQuantumGenerationSession } from "@/lib/quantumGenerationCheckout";
 
 // === HELPERS ===
 function isLocalHostUrl(value: string): boolean {
@@ -252,7 +253,32 @@ export async function POST(req: NextRequest) {
     const height: number = body.height || 1024;
     const negative_prompt: string | undefined = body.negative_prompt;
     const use_fractal_fusion: boolean = body.use_fractal_fusion !== false;
-    const useQuantumSeed: boolean = body.use_quantum_seed === true;
+    const useQuantumSeed: boolean = body.use_quantum_seed === true || body.quantum_mode === true;
+    const deviceId = typeof body.device_id === "string" ? body.device_id.trim() : "";
+    const quantumSessionId =
+      typeof body.quantum_session_id === "string"
+        ? body.quantum_session_id.trim()
+        : typeof body.session_id === "string"
+          ? body.session_id.trim()
+          : "";
+
+    if (useQuantumSeed) {
+      const verification = await verifyQuantumGenerationSession({
+        sessionId: quantumSessionId,
+        deviceId,
+        prompt,
+      });
+      if (!verification.success) {
+        return NextResponse.json(
+          {
+            success: false,
+            error: verification.status === 403 ? verification.error : "quantum_payment_required",
+          },
+          { status: verification.status === 403 ? 403 : 402 },
+        );
+      }
+    }
+
     const orderId: string = body.orderId || `gen_${Date.now()}`;
     const platform = asPlatform(body.platform);
     const provider = typeof body.provider === "string" ? body.provider.trim() : "";

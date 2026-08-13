@@ -25,6 +25,78 @@ function isRecord(v: unknown): v is Record<string, unknown> {
   return typeof v === 'object' && v !== null;
 }
 
+const QUANTUM_PENDING_PROMPT_KEY = 'foreverteck.studio.pendingQuantumPrompt';
+const QUANTUM_UNLOCK_KEY = 'foreverteck.studio.quantumUnlock';
+
+type StoredQuantumUnlock = {
+  prompt: string;
+  sessionId: string;
+};
+
+function normalizeStudioQuantumPrompt(value: string): string {
+  return value.trim().replace(/\s+/g, ' ');
+}
+
+function readStoredUser() {
+  if (typeof window === 'undefined') return null;
+  try {
+    const raw = localStorage.getItem('user');
+    return raw ? (JSON.parse(raw) as { id?: unknown; email?: unknown }) : null;
+  } catch {
+    return null;
+  }
+}
+
+function readOrCreateDeviceId() {
+  if (typeof window === 'undefined') return 'anonymous';
+  let deviceId = localStorage.getItem('device_id');
+  if (!deviceId) {
+    deviceId = `dev_${Date.now()}_${Math.random().toString(36).slice(2, 10)}`;
+    localStorage.setItem('device_id', deviceId);
+  }
+  return deviceId;
+}
+
+function setPendingQuantumPrompt(prompt: string) {
+  if (typeof window === 'undefined') return;
+  localStorage.setItem(QUANTUM_PENDING_PROMPT_KEY, normalizeStudioQuantumPrompt(prompt));
+}
+
+function getPendingQuantumPrompt() {
+  if (typeof window === 'undefined') return '';
+  return normalizeStudioQuantumPrompt(localStorage.getItem(QUANTUM_PENDING_PROMPT_KEY) || '');
+}
+
+function clearPendingQuantumPrompt() {
+  if (typeof window === 'undefined') return;
+  localStorage.removeItem(QUANTUM_PENDING_PROMPT_KEY);
+}
+
+function setStoredQuantumUnlock(value: StoredQuantumUnlock) {
+  if (typeof window === 'undefined') return;
+  localStorage.setItem(QUANTUM_UNLOCK_KEY, JSON.stringify(value));
+}
+
+function getStoredQuantumUnlock(): StoredQuantumUnlock | null {
+  if (typeof window === 'undefined') return null;
+  try {
+    const raw = localStorage.getItem(QUANTUM_UNLOCK_KEY);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw) as { prompt?: unknown; sessionId?: unknown };
+    const prompt = normalizeStudioQuantumPrompt(typeof parsed.prompt === 'string' ? parsed.prompt : '');
+    const sessionId = typeof parsed.sessionId === 'string' ? parsed.sessionId.trim() : '';
+    if (!prompt || !sessionId) return null;
+    return { prompt, sessionId };
+  } catch {
+    return null;
+  }
+}
+
+function clearStoredQuantumUnlock() {
+  if (typeof window === 'undefined') return;
+  localStorage.removeItem(QUANTUM_UNLOCK_KEY);
+}
+
 export default function StudioPage() {
   return (
     <Suspense fallback={null}>
@@ -36,6 +108,7 @@ export default function StudioPage() {
 function StudioPageInner() {
   const searchParams = useSearchParams();
   const testMode = (searchParams?.get('test') || '') === '1';
+  const quantumSessionIdFromUrl = (searchParams?.get('quantum_session_id') || '').trim();
   const scannedBackText = (searchParams?.get('back') || '').trim();
   const sharedImage = (searchParams?.get('shareImage') || '').trim();
   const sharedText = (searchParams?.get('shareText') || '').trim();
@@ -68,6 +141,11 @@ function StudioPageInner() {
   const [ipfsEnabled, setIpfsEnabled] = useState<boolean>(false);
   const [quantumMode, setQuantumMode] = useState<boolean>(false);
   const [quantumUnlocked, setQuantumUnlocked] = useState<boolean>(false);
+  const [quantumSessionId, setQuantumSessionId] = useState<string>('');
+  const [quantumCheckoutStatus, setQuantumCheckoutStatus] = useState<'idle' | 'starting' | 'redirecting' | 'error'>('idle');
+  const [quantumCheckoutError, setQuantumCheckoutError] = useState<string | null>(null);
+  const [quantumConfirmStatus, setQuantumConfirmStatus] = useState<'idle' | 'checking' | 'done' | 'error'>('idle');
+  const [quantumConfirmError, setQuantumConfirmError] = useState<string | null>(null);
   const [postingStatus, setPostingStatus] = useState<string | null>(null);
   const [quantumRecord, setQuantumRecord] = useState<{
     id: string;
@@ -116,10 +194,20 @@ function StudioPageInner() {
   const currentUserId = useMemo(() => {
     if (!hydrated) return '';
     try {
-      const raw = localStorage.getItem('user');
-      if (!raw) return '';
-      const parsed = JSON.parse(raw) as { id?: unknown };
+      const parsed = readStoredUser();
+      if (!parsed) return '';
       return typeof parsed.id === 'string' ? parsed.id.trim() : '';
+    } catch {
+      return '';
+    }
+  }, [hydrated]);
+
+  const currentUserEmail = useMemo(() => {
+    if (!hydrated) return '';
+    try {
+      const parsed = readStoredUser();
+      if (!parsed) return '';
+      return typeof parsed.email === 'string' ? parsed.email.trim() : '';
     } catch {
       return '';
     }
@@ -162,6 +250,81 @@ function StudioPageInner() {
   useEffect(() => {
     setHydrated(true);
   }, []);
+
+  useEffect(() => {
+    if (!hydrated) return;
+
+    const storedUnlock = getStoredQuantumUnlock();
+    if (!storedUnlock) return;
+
+    if (!prompt) {
+      setPrompt(storedUnlock.prompt);
+      setQuantumMode(true);
+      setQuantumUnlocked(true);
+      setQuantumSessionId(storedUnlock.sessionId);
+      return;
+    }
+
+    if (normalizeStudioQuantumPrompt(prompt) === storedUnlock.prompt) {
+      setQuantumMode(true);
+      setQuantumUnlocked(true);
+      setQuantumSessionId(storedUnlock.sessionId);
+    }
+  }, [hydrated, prompt]);
+
+  useEffect(() => {
+    if (!hydrated) return;
+    if (!quantumSessionIdFromUrl) return;
+    if (quantumConfirmStatus !== 'idle') return;
+
+    const pendingPrompt = getPendingQuantumPrompt() || normalizeStudioQuantumPrompt(prompt);
+    if (!pendingPrompt) {
+      setQuantumConfirmStatus('error');
+      setQuantumConfirmError('missing_quantum_prompt');
+      return;
+    }
+
+    let cancelled = false;
+    const run = async () => {
+      setQuantumConfirmStatus('checking');
+      setQuantumConfirmError(null);
+      try {
+        const params = new URLSearchParams();
+        params.set('session_id', quantumSessionIdFromUrl);
+        params.set('deviceId', readOrCreateDeviceId());
+        params.set('prompt', pendingPrompt);
+        const res = await fetch(`/api/quantum/confirm?${params.toString()}`, { cache: 'no-store' });
+        const json = await res.json().catch(() => null);
+        if (!res.ok || !json?.success) {
+          if (cancelled) return;
+          setQuantumConfirmStatus('error');
+          setQuantumConfirmError(String(json?.error || `HTTP_${res.status}`));
+          return;
+        }
+        if (cancelled) return;
+        setPrompt(pendingPrompt);
+        setQuantumMode(true);
+        setQuantumUnlocked(true);
+        setQuantumSessionId(quantumSessionIdFromUrl);
+        setQuantumConfirmStatus('done');
+        setStoredQuantumUnlock({ prompt: pendingPrompt, sessionId: quantumSessionIdFromUrl });
+        clearPendingQuantumPrompt();
+        setGenerationError(null);
+        addLog('Real quantum checkout confirmed for this prompt.', 'success', 'I_Q_CONFIRMED');
+        if (typeof window !== 'undefined') {
+          window.history.replaceState({}, '', '/studio');
+        }
+      } catch (e) {
+        if (cancelled) return;
+        setQuantumConfirmStatus('error');
+        setQuantumConfirmError(e instanceof Error ? e.message : 'confirm_failed');
+      }
+    };
+    run();
+    return () => {
+      cancelled = true;
+    };
+  }, [hydrated, prompt, quantumConfirmStatus, quantumSessionIdFromUrl]);
 
   useEffect(() => {
     if (!hydrated) return;
@@ -293,6 +456,7 @@ function StudioPageInner() {
   useEffect(() => {
     if (!quantumMode && quantumUnlocked) {
       setQuantumUnlocked(false);
+      setQuantumSessionId('');
     }
   }, [quantumMode, quantumUnlocked]);
 
@@ -461,6 +625,9 @@ function StudioPageInner() {
   const generationButtonLabel = (() => {
     if (isGenerating) return 'Dreaming...';
     if (generationMode === 'real_quantum') {
+      if (quantumConfirmStatus === 'checking') return 'Confirming Quantum Checkout…';
+      if (quantumCheckoutStatus === 'starting') return 'Starting Secure Checkout…';
+      if (quantumCheckoutStatus === 'redirecting') return 'Redirecting to Secure Checkout…';
       return quantumUnlocked ? 'Generate with Real Quantum Computer' : 'Unlock Real Quantum Generation - $9.99';
     }
     return 'Generate Standard Asset & Content';
@@ -469,10 +636,46 @@ function StudioPageInner() {
   const handleGenerationAction = async () => {
     if (!prompt || isGenerating) return;
     if (generationMode === 'real_quantum' && !quantumUnlocked) {
-      setQuantumUnlocked(true);
       setGenerationError(null);
-      addLog('Real quantum generation unlocked for this prompt.', 'success', 'I_Q_UNLOCKED');
+      setQuantumCheckoutStatus('starting');
+      setQuantumCheckoutError(null);
+      try {
+        const normalizedPrompt = normalizeStudioQuantumPrompt(prompt);
+        const deviceId = readOrCreateDeviceId();
+        setPendingQuantumPrompt(normalizedPrompt);
+        const res = await fetch('/api/quantum/checkout', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            prompt: normalizedPrompt,
+            deviceId,
+            userId: currentUserId,
+            email: currentUserEmail,
+          }),
+        });
+        const json = await res.json().catch(() => null);
+        if (!res.ok || !json?.url) {
+          setQuantumCheckoutStatus('error');
+          setQuantumCheckoutError(String(json?.error || `HTTP_${res.status}`));
+          return;
+        }
+        setQuantumCheckoutStatus('redirecting');
+        window.location.href = String(json.url);
+      } catch (e) {
+        setQuantumCheckoutStatus('error');
+        setQuantumCheckoutError(e instanceof Error ? e.message : 'quantum_checkout_failed');
+      }
       return;
+    }
+    if (generationMode === 'real_quantum') {
+      const storedUnlock = getStoredQuantumUnlock();
+      const normalizedPrompt = normalizeStudioQuantumPrompt(prompt);
+      if (!storedUnlock || storedUnlock.prompt !== normalizedPrompt || !quantumSessionId) {
+        setQuantumUnlocked(false);
+        setQuantumSessionId('');
+        setGenerationError('Real quantum unlock applies only to the paid prompt. Start checkout again.');
+        return;
+      }
     }
     await generateImage();
   };
@@ -531,6 +734,9 @@ function StudioPageInner() {
         width: 1024, 
         height: 1024,
         quantum_mode: quantumMode,
+        use_quantum_seed: quantumMode,
+        quantum_session_id: quantumSessionId,
+        device_id: quantumMode ? readOrCreateDeviceId() : '',
         ipfs_upload: ipfsEnabled
       };
 
@@ -853,6 +1059,10 @@ function StudioPageInner() {
           const nextRecords = upsertSourceRecord(Array.isArray(existing) ? existing : [], nextRecord);
           localStorage.setItem('foreverteck.pixelqrypt.sourceRecords', JSON.stringify(nextRecords.slice(0, 250)));
         } catch {}
+        clearStoredQuantumUnlock();
+        clearPendingQuantumPrompt();
+        setQuantumUnlocked(false);
+        setQuantumSessionId('');
       } else {
         setQuantumRecord(null);
       }
@@ -1330,11 +1540,26 @@ function StudioPageInner() {
               </div>
               <button 
                 onClick={handleGenerationAction}
-                disabled={isGenerating || !prompt}
-                className={`w-full py-3 rounded-lg font-bold flex items-center justify-center gap-2 ${isGenerating || !prompt ? 'bg-gray-700 cursor-not-allowed' : 'bg-purple-600 hover:bg-purple-500'}`}
+                disabled={isGenerating || !prompt || quantumConfirmStatus === 'checking' || quantumCheckoutStatus === 'redirecting'}
+                className={`w-full py-3 rounded-lg font-bold flex items-center justify-center gap-2 ${isGenerating || !prompt || quantumConfirmStatus === 'checking' || quantumCheckoutStatus === 'redirecting' ? 'bg-gray-700 cursor-not-allowed' : 'bg-purple-600 hover:bg-purple-500'}`}
               >
                 {generationButtonLabel}
               </button>
+              {quantumCheckoutError ? (
+                <div className="rounded-lg border border-red-500/30 bg-red-500/10 p-3 text-sm text-red-200">
+                  {quantumCheckoutError}
+                </div>
+              ) : null}
+              {quantumConfirmError ? (
+                <div className="rounded-lg border border-red-500/30 bg-red-500/10 p-3 text-sm text-red-200">
+                  {quantumConfirmError}
+                </div>
+              ) : null}
+              {generationError ? (
+                <div className="rounded-lg border border-red-500/30 bg-red-500/10 p-3 text-sm text-red-200">
+                  {generationError}
+                </div>
+              ) : null}
             </div>
 
             <div className="mt-8 w-full flex flex-col gap-4">

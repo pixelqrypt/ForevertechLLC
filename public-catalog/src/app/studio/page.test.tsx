@@ -172,6 +172,78 @@ describe('StudioPage calendar date range', () => {
     expect(screen.getByRole('button', { name: 'Unlock Real Quantum Generation - $9.99' })).toBeInTheDocument();
   });
 
+  it('starts secure checkout instead of unlocking real quantum generation locally', async () => {
+    let checkoutRequested = false;
+    global.fetch = vi.fn(async (input: RequestInfo | URL) => {
+      const url = typeof input === 'string' ? input : input instanceof URL ? input.toString() : input.url;
+      if (url.includes('/api/auth/session')) {
+        return {
+          ok: true,
+          json: async () => ({
+            twitter: { authenticated: false },
+            telegram: { authenticated: false },
+            instagram: { authenticated: false },
+            tiktok: { authenticated: false },
+            youtube: { authenticated: false },
+            reddit: { authenticated: true, screenName: 'reddit_user' },
+            discord: { authenticated: true, screenName: 'Discord connected' },
+            rss: { authenticated: true, screenName: 'RSS feed' },
+          }),
+        } as Response;
+      }
+      if (url.includes('/api/social/discord')) {
+        return {
+          ok: true,
+          json: async () => ({
+            success: true,
+            connected: true,
+            webhookDisplay: 'https://discord.com/.../abc...xyz',
+          }),
+        } as Response;
+      }
+      if (url.includes('/api/chat/history')) {
+        return { ok: true, json: async () => ({ success: true, data: { messages: [] } }) } as Response;
+      }
+      if (url.includes('/api/catalog/posts')) {
+        return { ok: true, json: async () => ({ posts: [] }) } as Response;
+      }
+      if (url.includes('/api/printify/mockups')) {
+        return {
+          ok: true,
+          json: async () => ({
+            success: true,
+            designHash: 'hash_test',
+            status: 'pending',
+            mockups: { frontUrl: undefined, backUrl: undefined, leftUrl: undefined, rightUrl: undefined },
+          }),
+        } as Response;
+      }
+      if (url.includes('/api/quantum/checkout')) {
+        checkoutRequested = true;
+        return {
+          ok: true,
+          status: 200,
+          json: async () => ({
+            url: 'https://stripe.test/quantum-checkout',
+            sessionId: 'cs_quantum_1',
+          }),
+        } as Response;
+      }
+      return { ok: true, json: async () => ({ success: true }) } as Response;
+    }) as typeof fetch;
+
+    await renderStudioPage();
+    const textarea = screen.getByPlaceholderText('Describe the image and post content you want to generate...') as HTMLTextAreaElement;
+    fireEvent.change(textarea, { target: { value: 'quantum wormhole fractal' } });
+    fireEvent.click(screen.getByLabelText('Real Quantum Generation - $9.99'));
+    fireEvent.click(screen.getByRole('button', { name: 'Unlock Real Quantum Generation - $9.99' }));
+
+    await waitFor(() => {
+      expect(checkoutRequested).toBe(true);
+    });
+    expect(screen.queryByText('Real quantum generation unlocked for this prompt.')).not.toBeInTheDocument();
+  });
+
   it('shows a separate premium creator upgrade path', async () => {
     await renderStudioPage();
     expect(screen.getByText('Premium Creator - $24.99/month')).toBeInTheDocument();
