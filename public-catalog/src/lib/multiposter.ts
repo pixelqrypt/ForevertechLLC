@@ -6,6 +6,15 @@ export type PosterPlatformState = {
   authenticated: boolean;
 };
 
+function toSharableImageUrl(value: string): string {
+  const trimmed = value.trim();
+  if (!trimmed) return '';
+  if (trimmed.startsWith('<svg')) {
+    return `data:image/svg+xml;charset=utf-8,${encodeURIComponent(trimmed)}`;
+  }
+  return trimmed;
+}
+
 export const POSTER_PLATFORM_NAMES: Record<PosterPlatformKey, string> = {
   reddit: 'Reddit',
   discord: 'Discord',
@@ -58,7 +67,7 @@ export function buildPosterHref({
   prompt?: string | null;
 }) {
   const href = new URL('/studio', origin);
-  const safeImageUrl = typeof imageUrl === 'string' ? imageUrl.trim() : '';
+  const safeImageUrl = typeof imageUrl === 'string' ? toSharableImageUrl(imageUrl) : '';
   const safeText = typeof text === 'string' ? text.trim() : '';
   const safePrompt = typeof prompt === 'string' ? prompt.trim() : '';
 
