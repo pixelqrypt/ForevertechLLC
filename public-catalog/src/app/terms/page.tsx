@@ -5,10 +5,10 @@ import { Header } from "@/components/Header";
 export const metadata: Metadata = {
   title: "Terms of Service",
   description:
-    "Read the Terms of Service for PixelQrypt by ForeverTech. Covers studio use, custom apparel purchases, Stripe card payments, print-on-demand fulfillment, and customer responsibilities.",
+    "Read the Terms of Service for PixelQrypt by ForeverTech LLC. Covers studio use, custom apparel purchases, Stripe card payments, print-on-demand fulfillment, and customer responsibilities.",
   keywords: [
     "PixelQrypt terms",
-    "ForeverTech terms of service",
+    "ForeverTech LLC terms of service",
     "custom merch terms",
     "print on demand terms",
     "Stripe checkout terms",
@@ -27,7 +27,7 @@ export default function TermsPage() {
           <section className="mt-8 space-y-3 text-gray-300 leading-relaxed">
             <h2 className="text-2xl font-bold text-white">Overview</h2>
             <p>
-              ForeverTech provides a studio experience for generating designs and a storefront for purchasing physical products printed with those designs.
+              PixelQrypt by ForeverTech LLC provides a studio experience for generating designs and a storefront for purchasing physical products printed with those designs.
               By using the site, you agree to these Terms.
             </p>
           </section>
@@ -90,7 +90,7 @@ export default function TermsPage() {
               .
             </p>
             <div className="mt-3 text-sm text-gray-400">
-              ForeverTech • 84 Luisa St, Brooklyn, NY 10223 • Hours: 24/7
+              ForeverTech LLC • 84 Luisa St, Brooklyn, NY 10223 • Hours: 24/7
             </div>
           </section>
         </div>

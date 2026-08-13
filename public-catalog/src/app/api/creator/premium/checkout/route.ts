@@ -1,11 +1,5 @@
 import { NextResponse } from 'next/server';
-import Stripe from 'stripe';
-
-function getStripeClient() {
-  const secretKey = process.env.STRIPE_SECRET_KEY;
-  if (!secretKey) throw new Error('Missing STRIPE_SECRET_KEY');
-  return new Stripe(secretKey);
-}
+import { getCheckoutErrorResponse, getRequestOrigin, getStripeClient } from '@/lib/checkoutRuntime';
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null;
@@ -15,22 +9,6 @@ function getString(v: unknown, maxLen = 400): string {
   const s = typeof v === 'string' ? v : '';
   const t = s.trim();
   return t.length > maxLen ? t.slice(0, maxLen) : t;
-}
-
-function getRequestOrigin(request: Request): string {
-  const env = (process.env.NEXT_PUBLIC_SITE_URL || '').trim();
-  if (env) return env.replace(/\/$/, '');
-
-  const hostHeader = (request.headers.get('x-forwarded-host') || request.headers.get('host') || '').trim();
-  const host = hostHeader.split(',')[0]?.trim() || '';
-  const protoHeader = (request.headers.get('x-forwarded-proto') || '').trim();
-  const proto = protoHeader.split(',')[0]?.trim() || '';
-  if (host) return `${proto || 'https'}://${host}`;
-
-  const origin = (request.headers.get('origin') || '').trim();
-  if (origin) return origin.replace(/\/$/, '');
-
-  return process.env.NODE_ENV !== 'production' ? 'http://localhost:3001' : '';
 }
 
 export async function POST(request: Request) {
@@ -67,8 +45,7 @@ export async function POST(request: Request) {
 
     return NextResponse.json({ url: session.url, sessionId: session.id });
   } catch (e: unknown) {
-    const msg = e instanceof Error ? e.message : 'internal_error';
-    return NextResponse.json({ error: msg }, { status: 500 });
+    const checkoutError = getCheckoutErrorResponse(e);
+    return NextResponse.json({ error: checkoutError.error }, { status: checkoutError.status });
   }
 }
-

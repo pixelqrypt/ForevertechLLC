@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { OWNER_BRAND, OWNER_STATEMENT, PRIMARY_BRAND, SUPPORT_EMAIL } from "@/lib/brand";
 
 export function Footer() {
   return (
@@ -6,11 +7,12 @@ export function Footer() {
       <div className="container mx-auto px-4 py-10">
         <div className="grid gap-8 md:grid-cols-3">
           <div className="space-y-2">
-            <div className="text-sm font-semibold">ForeverTech</div>
+            <div className="text-sm font-semibold">{PRIMARY_BRAND}</div>
+            <div className="text-xs uppercase tracking-[0.22em] text-white/45">by {OWNER_BRAND}</div>
             <div className="text-sm text-white/70">84 Luisa St, Brooklyn, NY 10223</div>
             <div className="text-sm text-white/70">Hours: 24/7</div>
-            <a className="text-sm text-blue-300 hover:text-blue-200" href="mailto:support@forevertech.tech">
-              support@forevertech.tech
+            <a className="text-sm text-blue-300 hover:text-blue-200" href={`mailto:${SUPPORT_EMAIL}`}>
+              {SUPPORT_EMAIL}
             </a>
           </div>
 
@@ -43,11 +45,11 @@ export function Footer() {
         </div>
 
         <div className="mt-10 flex flex-col gap-2 border-t border-white/10 pt-6 text-xs text-white/50 md:flex-row md:items-center md:justify-between">
-          <div>© {new Date().getFullYear()} ForeverTech. All rights reserved.</div>
+          <div>© {new Date().getFullYear()} {OWNER_BRAND}. All rights reserved.</div>
+          <div>{OWNER_STATEMENT}</div>
           <div>Payments are processed securely by Stripe.</div>
         </div>
       </div>
     </footer>
   );
 }
-

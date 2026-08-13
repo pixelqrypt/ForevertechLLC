@@ -1,16 +1,8 @@
 import { NextResponse } from 'next/server';
-import Stripe from 'stripe';
 import { quoteShipping } from '@/lib/shippingConfig';
 import { getCart } from '@/lib/cartStore';
 import { getServiceSupabase } from '@/lib/supabase';
-
-function getStripeClient() {
-  const secretKey = process.env.STRIPE_SECRET_KEY;
-  if (!secretKey) {
-    throw new Error('Missing STRIPE_SECRET_KEY');
-  }
-  return new Stripe(secretKey);
-}
+import { getCheckoutErrorResponse, getRequestOrigin, getStripeClient, InvalidCheckoutRequestError } from '@/lib/checkoutRuntime';
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null;
@@ -40,22 +32,6 @@ function normalizeCustomerQrUrl(input: unknown): string {
   if (u.protocol !== 'http:' && u.protocol !== 'https:') return '';
   const href = u.toString();
   return href.length > 350 ? href.slice(0, 350) : href;
-}
-
-function getRequestOrigin(request: Request): string {
-  const env = (process.env.NEXT_PUBLIC_SITE_URL || '').trim();
-  if (env) return env.replace(/\/$/, '');
-
-  const hostHeader = (request.headers.get('x-forwarded-host') || request.headers.get('host') || '').trim();
-  const host = hostHeader.split(',')[0]?.trim() || '';
-  const protoHeader = (request.headers.get('x-forwarded-proto') || '').trim();
-  const proto = protoHeader.split(',')[0]?.trim() || '';
-  if (host) return `${proto || 'https'}://${host}`;
-
-  const origin = (request.headers.get('origin') || '').trim();
-  if (origin) return origin.replace(/\/$/, '');
-
-  return process.env.NODE_ENV !== 'production' ? 'http://localhost:3001' : '';
 }
 
 const STRIPE_ALLOWED_SHIPPING_COUNTRIES = [
@@ -168,7 +144,7 @@ export async function POST(request: Request) {
       const rec = isRecord(item) ? (item as Record<string, unknown>) : {};
       const unitAmount = resolveUnitAmountCents(item);
       if (unitAmount === null) {
-        throw new Error('invalid_product');
+        throw new InvalidCheckoutRequestError('Invalid cart item pricing');
       }
       const title = getString(rec.title) || 'Product';
       const quantity = Math.max(1, Math.trunc(getNumber(rec.quantity) || 1));
@@ -317,8 +293,10 @@ export async function POST(request: Request) {
 
     return NextResponse.json({ url: session.url, sessionId: session.id });
   } catch (error: unknown) {
-    console.error('Stripe error:', error);
-    const errorMessage = error instanceof Error ? error.message : 'An unknown error occurred';
-    return NextResponse.json({ error: errorMessage }, { status: 500 });
+    const checkoutError = getCheckoutErrorResponse(error);
+    if (checkoutError.status >= 500) {
+      console.error('Stripe error:', error);
+    }
+    return NextResponse.json({ error: checkoutError.error }, { status: checkoutError.status });
   }
 }

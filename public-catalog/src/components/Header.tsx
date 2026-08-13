@@ -2,11 +2,13 @@
 
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
+import Image from 'next/image';
 import { usePathname, useRouter } from 'next/navigation';
 import { ShoppingBag, Menu, X, User } from 'lucide-react';
 import { LiveBadge } from './LiveBadge';
 import { useCart } from '@/context/CartContext';
 import { useAuth } from '@/context/AuthContext';
+import { BRAND_SIGNATURE, PRIMARY_BRAND } from '@/lib/brand';
 
 function isRecord(v: unknown): v is Record<string, unknown> {
   return typeof v === 'object' && v !== null;
@@ -57,17 +59,20 @@ export function Header() {
         <div className="flex items-center gap-2">
           <Link href="/" className="flex items-center gap-2">
             <div className="relative h-12 w-12 overflow-hidden rounded-full border-2 border-white shadow-lg shadow-primary/20">
-              <img
+              <Image
                 src="/images/Forevertech_logo.jpg"
-                alt="ForeverTech Logo"
-                className="absolute inset-0 h-full w-full object-cover"
-                loading="eager"
-                decoding="async"
+                alt={`${PRIMARY_BRAND} mark`}
+                fill
+                sizes="48px"
+                className="object-cover"
+                priority
               />
             </div>
-            <span className="hidden text-xl font-bold text-white sm:inline-block">
-              ForeverTech <span className="text-zinc-500 font-normal">Catalog</span>
+            <span className="hidden sm:flex sm:flex-col sm:leading-tight">
+              <span className="text-xl font-bold text-white">{PRIMARY_BRAND}</span>
+              <span className="text-[11px] font-medium uppercase tracking-[0.24em] text-zinc-500">by ForeverTech LLC</span>
             </span>
+            <span className="sr-only">{BRAND_SIGNATURE}</span>
           </Link>
           {showLiveBadge ? (
             <div className="ml-2 hidden md:block">

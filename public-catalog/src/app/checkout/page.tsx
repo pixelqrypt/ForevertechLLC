@@ -6,6 +6,7 @@ import type { CartItem } from '@/context/CartContext';
 import { useAuth } from '@/context/AuthContext';
 import { Loader2 } from 'lucide-react';
 import Link from 'next/link';
+import { BRAND_SIGNATURE } from '@/lib/brand';
 
 function isRecord(v: unknown): v is Record<string, unknown> {
   return typeof v === 'object' && v !== null;
@@ -257,7 +258,10 @@ export default function CheckoutPage() {
   return (
     <div className="container mx-auto px-4 py-12 max-w-4xl">
       <div className="flex justify-between items-center mb-8">
-        <h1 className="text-3xl font-bold text-white">Checkout</h1>
+          <div>
+            <div className="mb-2 text-xs font-semibold uppercase tracking-[0.24em] text-zinc-500">{BRAND_SIGNATURE}</div>
+            <h1 className="text-3xl font-bold text-white">Checkout</h1>
+          </div>
       </div>
       
       <div className="grid gap-8 md:grid-cols-2">
@@ -430,7 +434,7 @@ export default function CheckoutPage() {
           <div className="space-y-3">
             <h2 className="text-xl font-semibold text-white">Payment Method</h2>
             <div className="rounded-lg border border-zinc-800 bg-zinc-950/40 p-4 text-sm text-zinc-300">
-              Payments are processed securely by Stripe (card).
+              Payments for {BRAND_SIGNATURE} are processed securely by Stripe (card).
             </div>
           </div>
 

@@ -5,10 +5,10 @@ import { Header } from "@/components/Header";
 export const metadata: Metadata = {
   title: "Shipping Policy",
   description:
-    "Shipping policy for PixelQrypt by ForeverTech. Learn production times, delivery estimates, tracking, and support for print-on-demand apparel orders fulfilled via Printify.",
+    "Shipping policy for PixelQrypt by ForeverTech LLC. Learn production times, delivery estimates, tracking, and support for print-on-demand apparel orders fulfilled via Printify.",
   keywords: [
     "PixelQrypt shipping",
-    "ForeverTech shipping policy",
+    "ForeverTech LLC shipping policy",
     "print on demand shipping",
     "Printify fulfillment",
     "custom t-shirt shipping",
@@ -85,7 +85,7 @@ export default function ShippingPolicyPage() {
               .
             </p>
             <div className="mt-3 text-sm text-gray-400">
-              ForeverTech • 84 Luisa St, Brooklyn, NY 10223 • Hours: 24/7
+              ForeverTech LLC • 84 Luisa St, Brooklyn, NY 10223 • Hours: 24/7
             </div>
           </section>
         </div>

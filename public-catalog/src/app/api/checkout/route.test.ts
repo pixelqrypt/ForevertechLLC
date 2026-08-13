@@ -101,4 +101,30 @@ describe('checkout route', () => {
     expect(orderUpdateMock).toHaveBeenCalled();
     expect(orderUpdateMock.mock.calls[0][0].stripe_checkout_session_id).toBe('cs_test_1');
   });
+
+  it('returns 400 when a checkout item cannot resolve to a sellable price', async () => {
+    const req = new Request('http://localhost/api/checkout', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({
+        customerEmail: 'buyer@example.com',
+        deviceId: 'device-1',
+        items: [
+          {
+            id: 'item-1',
+            title: 'Broken Product',
+            quantity: 1,
+            metadata: {},
+          },
+        ],
+      }),
+    });
+
+    const res = await POST(req);
+    const json = await res.json();
+
+    expect(res.status).toBe(400);
+    expect(json).toEqual(expect.objectContaining({ error: 'Invalid cart item pricing' }));
+    expect(createSessionMock).not.toHaveBeenCalled();
+  });
 });

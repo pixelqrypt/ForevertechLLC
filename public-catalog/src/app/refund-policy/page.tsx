@@ -5,10 +5,10 @@ import { Header } from "@/components/Header";
 export const metadata: Metadata = {
   title: "Refund & Return Policy",
   description:
-    "Refund and return policy for PixelQrypt by ForeverTech. Covers made-to-order apparel replacements, damaged/defective items, shipping issues, and support contact for order help.",
+    "Refund and return policy for PixelQrypt by ForeverTech LLC. Covers made-to-order apparel replacements, damaged/defective items, shipping issues, and support contact for order help.",
   keywords: [
     "PixelQrypt refunds",
-    "ForeverTech return policy",
+    "ForeverTech LLC return policy",
     "print on demand returns",
     "custom t-shirt refund",
     "order support",
@@ -84,7 +84,7 @@ export default function RefundPolicyPage() {
               .
             </p>
             <div className="mt-3 text-sm text-gray-400">
-              ForeverTech • 84 Luisa St, Brooklyn, NY 10223 • Hours: 24/7
+              ForeverTech LLC • 84 Luisa St, Brooklyn, NY 10223 • Hours: 24/7
             </div>
           </section>
         </div>

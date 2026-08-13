@@ -78,4 +78,12 @@ describe('CheckoutPage', () => {
     expect(screen.getByText(/earn 45% on creator-linked sales/i)).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Upgrade to Premium Creator' })).toBeInTheDocument();
   });
+
+  it('uses PixelQrypt by ForeverTech LLC in checkout trust copy', async () => {
+    render(<CheckoutPage />);
+
+    await waitFor(() => {
+      expect(screen.getByText(/payments for pixelqrypt by forevertech llc are processed securely by stripe/i)).toBeInTheDocument();
+    });
+  });
 });

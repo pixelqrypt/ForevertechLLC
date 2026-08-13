@@ -2,20 +2,21 @@ import type { Metadata } from "next";
 import { Analytics } from "@vercel/analytics/next";
 import { Providers } from "@/components/Providers";
 import { Footer } from "@/components/Footer";
+import { BRAND_SIGNATURE, OWNER_BRAND, PRIMARY_BRAND } from "@/lib/brand";
 import "./globals.css";
 
 export const metadata: Metadata = {
   metadataBase: new URL("https://www.pixelqrypt.com"),
-  applicationName: "PixelQrypt",
+  applicationName: PRIMARY_BRAND,
   title: {
-    default: "Quantum Story Tees",
-    template: "%s | PixelQrypt",
+    default: PRIMARY_BRAND,
+    template: `%s | ${PRIMARY_BRAND}`,
   },
   description:
-    "Generate a one-of-one fractal story tee from your prompt, unlock a verified origin record with Real Quantum Generation, and wear a piece that proves its own futuristic creation story. Premium Creator unlocks ownership rights and an earnings opportunity through QR‑linked sales and creator payouts.",
+    `${BRAND_SIGNATURE} creates one-of-one fractal apparel from your prompt, with premium presentation, secure checkout, and a wearable art experience owned and operated by ${OWNER_BRAND}.`,
   keywords: [
-    "PixelQrypt",
-    "ForeverTech",
+    PRIMARY_BRAND,
+    OWNER_BRAND,
     "math art",
     "AI art t-shirts",
     "AI art merch",
@@ -42,17 +43,15 @@ export const metadata: Metadata = {
   openGraph: {
     type: "website",
     url: "https://www.pixelqrypt.com",
-    siteName: "PixelQrypt",
-    title: "Quantum Story Tees",
-    description:
-      "Generate a one-of-one fractal story tee from your prompt, unlock a verified origin record with Real Quantum Generation, and wear a piece that proves its own futuristic creation story. Premium Creator unlocks ownership rights and an earnings opportunity through QR‑linked sales and creator payouts.",
+    siteName: PRIMARY_BRAND,
+    title: BRAND_SIGNATURE,
+    description: `${BRAND_SIGNATURE} creates premium fractal apparel with secure checkout, collectible presentation, and a cleaner path from prompt to product.`,
     images: [{ url: "/images/ai-gen-1.png", width: 1200, height: 630, alt: "PixelQrypt AI art apparel preview" }],
   },
   twitter: {
     card: "summary_large_image",
-    title: "Quantum Story Tees",
-    description:
-      "Generate a one-of-one fractal story tee from your prompt, unlock a verified origin record with Real Quantum Generation, and wear a piece that proves its own futuristic creation story. Premium Creator unlocks ownership rights and an earnings opportunity through QR‑linked sales and creator payouts.",
+    title: BRAND_SIGNATURE,
+    description: `${BRAND_SIGNATURE} creates premium fractal apparel with secure checkout and a cleaner path from prompt to product.`,
     images: ["/images/ai-gen-1.png"],
   },
   robots: {
@@ -63,7 +62,7 @@ export const metadata: Metadata = {
   appleWebApp: {
     capable: true,
     statusBarStyle: "default",
-    title: "PixelQrypt",
+    title: PRIMARY_BRAND,
   },
   icons: {
     icon: [

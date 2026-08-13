@@ -4,10 +4,10 @@ import { Header } from "@/components/Header";
 export const metadata: Metadata = {
   title: "Privacy Policy",
   description:
-    "Privacy Policy for PixelQrypt by ForeverTech. Learn what information we collect (account, prompts, generated designs, checkout details), how we use it, and how we share it with payment and fulfillment partners.",
+    "Privacy Policy for PixelQrypt by ForeverTech LLC. Learn what information we collect (account, prompts, generated designs, checkout details), how we use it, and how we share it with payment and fulfillment partners.",
   keywords: [
     "PixelQrypt privacy",
-    "ForeverTech privacy policy",
+    "ForeverTech LLC privacy policy",
     "AI art privacy",
     "checkout privacy",
     "print on demand privacy",
@@ -25,7 +25,7 @@ export default function PrivacyPolicyPage() {
             Effective date: 2026-05-09
           </p>
           <p className="mt-6 text-gray-300 leading-relaxed">
-            This Privacy Policy explains how ForeverTech Catalog collects, uses, and shares information when you use our website,
+            This Privacy Policy explains how PixelQrypt by ForeverTech LLC collects, uses, and shares information when you use our website,
             studio tools, and checkout flow.
           </p>
 

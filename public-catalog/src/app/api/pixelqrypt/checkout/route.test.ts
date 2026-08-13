@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-const createSessionMock = vi.fn(async () => ({ id: 'cs_test_1', url: 'https://stripe.test/pixelqrypt-checkout' }));
+const createSessionMock = vi.fn(async () => ({ id: 'cs_test_1', url: 'https://stripe.test/checkout' }));
 
 vi.mock('stripe', () => {
   return {
@@ -20,22 +20,19 @@ import { POST } from './route';
 describe('pixelqrypt checkout route', () => {
   beforeEach(() => {
     process.env.STRIPE_SECRET_KEY = 'sk_test_123';
-    process.env.NEXT_PUBLIC_SITE_URL = 'http://localhost:3001';
+    delete process.env.NEXT_PUBLIC_SITE_URL;
     createSessionMock.mockClear();
   });
 
-  it('stores the 45% creator payout rate in session metadata for creator-linked purchases', async () => {
-    const req = new Request('http://localhost/api/pixelqrypt/checkout', {
+  it('creates a branded PixelQrypt checkout session using the forwarded request origin', async () => {
+    const req = new Request('http://local/api/pixelqrypt/checkout', {
       method: 'POST',
-      headers: { 'content-type': 'application/json' },
-      body: JSON.stringify({
-        code: 'PXQ-123',
-        deviceId: 'device-1',
-        userId: 'buyer-1',
-        email: 'buyer@example.com',
-        creatorUserId: 'creator-1',
-        creatorStripeAccountId: 'acct_creator',
-      }),
+      headers: {
+        'content-type': 'application/json',
+        'x-forwarded-host': 'pixelqrypt.com',
+        'x-forwarded-proto': 'https',
+      },
+      body: JSON.stringify({ code: 'ABC123', deviceId: 'device-1' }),
     });
 
     const res = await POST(req);
@@ -44,8 +41,7 @@ describe('pixelqrypt checkout route', () => {
     expect(createSessionMock).toHaveBeenCalledTimes(1);
 
     const createArgs = createSessionMock.mock.calls[0][0];
-    expect(createArgs.metadata.payoutRate).toBe('0.45');
-    expect(createArgs.metadata.creatorPayoutCents).toBe('359');
-    expect(createArgs.metadata.platformFeeCents).toBe('440');
+    expect(createArgs.success_url).toMatch(/^https:\/\/pixelqrypt\.com\/pixelqrypt/);
+    expect(createArgs.line_items[0].price_data.product_data.name).toBe('PixelQrypt Download Access by ForeverTech LLC');
   });
 });

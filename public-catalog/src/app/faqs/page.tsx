@@ -5,7 +5,7 @@ import { Header } from "@/components/Header";
 export const metadata: Metadata = {
   title: "FAQs: AI Art T-Shirts, Studio, Checkout & Shipping",
   description:
-    "FAQs for PixelQrypt by ForeverTech: how the prompt-to-print Studio works, how to customize products, Stripe card checkout, Printify print-on-demand fulfillment, shipping, and order support.",
+    "FAQs for PixelQrypt by ForeverTech LLC: how the prompt-to-print Studio works, how to customize products, Stripe card checkout, Printify print-on-demand fulfillment, shipping, and order support.",
   keywords: [
     "PixelQrypt FAQ",
     "AI art t-shirt FAQ",
@@ -35,7 +35,7 @@ export default function FaqsPage() {
         <div className="rounded-2xl border border-gray-700 bg-gradient-to-b from-gray-800 to-gray-900 p-8">
           <h1 className="text-4xl font-bold">FAQs</h1>
           <p className="mt-4 text-gray-300 leading-relaxed max-w-3xl">
-            This page explains how ForeverTech Catalog works end-to-end: Studio → Customize → Cart → Checkout → Printify fulfillment, plus how the studio now
+            This page explains how PixelQrypt by ForeverTech LLC works end-to-end: Studio → Customize → Cart → Checkout → Printify fulfillment, plus how the studio now
             offers a real quantum generation mode before you enter the merch flow.
           </p>
           <div className="mt-6 flex flex-wrap gap-3 text-sm">

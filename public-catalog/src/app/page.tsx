@@ -3,6 +3,7 @@ import Link from 'next/link';
 import Image from 'next/image';
 import fs from 'fs';
 import path from 'path';
+import { BRAND_SIGNATURE, PRIMARY_BRAND } from '@/lib/brand';
 
 type CatalogPost = {
   id: string;
@@ -152,12 +153,12 @@ export default async function Home() {
           <div className="container mx-auto px-4 py-12 md:py-20">
             <div className="grid items-center gap-10 lg:grid-cols-[1.05fr_0.95fr]">
               <div className="max-w-2xl">
-                <p className="text-xs font-semibold uppercase tracking-[0.32em] text-amber-200/80">Luxury Fractal Apparel</p>
+                <p className="text-xs font-semibold uppercase tracking-[0.32em] text-amber-200/80">{BRAND_SIGNATURE}</p>
                 <h1 className="mt-5 text-4xl font-semibold tracking-tight text-white sm:text-5xl lg:text-7xl">
                   Wear A Design No One Else Has
                 </h1>
                 <p className="mt-6 max-w-xl text-base leading-7 text-zinc-300 sm:text-lg">
-                  ForeverTech transforms your idea into premium fractal apparel with a luxury presentation,
+                  {PRIMARY_BRAND} transforms your idea into premium fractal apparel with a luxury presentation,
                   collectible feel, and a creation process designed to feel personal from start to finish.
                 </p>
                 <div className="mt-8 flex flex-wrap items-center gap-4">
@@ -230,7 +231,7 @@ export default async function Home() {
             </h2>
             <p className="mt-6 text-base leading-8 text-zinc-300 sm:text-lg">
               Every piece begins with your prompt, develops into an original visual direction, and becomes a finished
-              product designed to feel rare, elevated, and deeply personal. ForeverTech is built for customers who
+              product designed to feel rare, elevated, and deeply personal. {PRIMARY_BRAND} is built for customers who
               want more than another printed tee. It is for people who want something with presence.
             </p>
           </div>
@@ -322,7 +323,7 @@ export default async function Home() {
               <h2 className="text-xs font-semibold uppercase tracking-[0.32em] text-amber-200/80">Designed To Feel Like Yours</h2>
               <h3 className="mt-4 text-3xl font-semibold tracking-tight text-white sm:text-4xl">The story matters as much as the image.</h3>
               <p className="mt-6 text-sm leading-8 text-zinc-300 sm:text-base">
-                For customers who care about originality, a ForeverTech piece is more than a surface design. It
+                For customers who care about originality, a {PRIMARY_BRAND} piece is more than a surface design. It
                 carries the feeling of authorship, selection, and intention. The finished product should feel like it
                 belongs to your vision, not to a generic catalog.
               </p>

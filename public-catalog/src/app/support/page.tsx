@@ -136,7 +136,7 @@ export default function SupportPage() {
         </div>
 
         <div className="mb-10 rounded-2xl border border-gray-700 bg-gray-900 p-6">
-          <div className="text-lg font-semibold">ForeverTech Support</div>
+          <div className="text-lg font-semibold">PixelQrypt Support by ForeverTech LLC</div>
           <div className="mt-2 grid gap-1 text-sm text-gray-300">
             <div>
               Email:{" "}

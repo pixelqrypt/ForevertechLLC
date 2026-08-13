@@ -13,4 +13,9 @@ describe('app metadata icons', () => {
     );
     expect(metadata.manifest).toBe('/manifest.webmanifest');
   });
+
+  it('keeps PixelQrypt primary while naming ForeverTech LLC as the owner in metadata copy', () => {
+    expect(metadata.applicationName).toBe('PixelQrypt');
+    expect(String(metadata.description)).toMatch(/ForeverTech LLC/i);
+  });
 });

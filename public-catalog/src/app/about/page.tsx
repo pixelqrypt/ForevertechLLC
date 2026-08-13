@@ -40,7 +40,7 @@ export default function AboutPage() {
         <div className="rounded-2xl border border-gray-700 bg-gradient-to-b from-gray-800 to-gray-900 p-8">
           <div className="flex items-center gap-3 text-purple-300">
             <Sparkles className="w-6 h-6" />
-            <span className="text-sm font-semibold uppercase tracking-wider">About PixelQrypt by ForeverTech</span>
+            <span className="text-sm font-semibold uppercase tracking-wider">About PixelQrypt by ForeverTech LLC</span>
           </div>
           <h1 className="mt-3 text-4xl font-bold">
             A prompt-to-print pipeline for turning words into mathematical art and shipping it on apparel.

@@ -19,6 +19,16 @@ vi.mock('next/link', () => ({
   ),
 }));
 
+vi.mock('next/image', () => ({
+  default: (props: React.ImgHTMLAttributes<HTMLImageElement> & { fill?: boolean; priority?: boolean }) => {
+    const { alt, ...imgProps } = props;
+    delete imgProps.fill;
+    delete imgProps.priority;
+    // eslint-disable-next-line @next/next/no-img-element
+    return <img alt={alt} {...imgProps} />;
+  },
+}));
+
 vi.mock('next/navigation', () => ({
   usePathname: () => usePathnameMock(),
   useRouter: () => ({ push: pushMock }),
@@ -91,5 +101,13 @@ describe('Header', () => {
     expect(options).toContain('Support');
     expect(options).not.toContain('MultiPoster');
     expect(options).not.toContain('Tools');
+  });
+
+  it('prioritizes PixelQrypt while keeping ForeverTech LLC secondary', async () => {
+    render(<Header />);
+
+    await waitFor(() => {
+      expect(screen.getByRole('link', { name: /pixelqrypt by forevertech llc/i })).toBeInTheDocument();
+    });
   });
 });
