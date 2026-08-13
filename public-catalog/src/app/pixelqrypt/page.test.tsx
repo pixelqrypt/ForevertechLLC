@@ -2,7 +2,7 @@ import '@testing-library/jest-dom/vitest';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { render, screen, waitFor } from '@testing-library/react';
 
-import PixelQryptPage from './page';
+import { PixelQryptClient } from './PixelQryptClient';
 
 vi.mock('@/components/Header', () => ({
   Header: () => <div>Header</div>,
@@ -19,7 +19,7 @@ vi.mock('next/navigation', async () => {
   };
 });
 
-describe('PixelQryptPage', () => {
+describe('PixelQryptClient', () => {
   beforeEach(() => {
     localStorage.clear();
     global.fetch = vi.fn(async (input: RequestInfo | URL) => {
@@ -50,7 +50,7 @@ describe('PixelQryptPage', () => {
   });
 
   it('shows creator-linked one-time buyer messaging for public QR visitors', async () => {
-    render(<PixelQryptPage />);
+    render(<PixelQryptClient />);
 
     await waitFor(() => {
       expect(screen.getByText('Creator-linked sale')).toBeInTheDocument();

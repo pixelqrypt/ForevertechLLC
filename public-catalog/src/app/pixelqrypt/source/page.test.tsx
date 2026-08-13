@@ -2,7 +2,7 @@ import '@testing-library/jest-dom/vitest';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { render, screen } from '@testing-library/react';
 
-import PixelQryptSourcePage from './page';
+import { PixelQryptSourceClient } from './PixelQryptSourceClient';
 
 vi.mock('@/components/Header', () => ({
   Header: () => <div>Header</div>,
@@ -19,7 +19,7 @@ vi.mock('next/navigation', async () => {
   };
 });
 
-describe('PixelQryptSourcePage', () => {
+describe('PixelQryptSourceClient', () => {
   beforeEach(() => {
     localStorage.clear();
     localStorage.setItem(
@@ -45,7 +45,7 @@ describe('PixelQryptSourcePage', () => {
   });
 
   it('renders a stored source record with IBM-linked verification details', () => {
-    render(<PixelQryptSourcePage />);
+    render(<PixelQryptSourceClient />);
 
     expect(screen.getByText('PixelQrypt Source Record')).toBeInTheDocument();
     expect(screen.getByText('quantum flower over a neon city')).toBeInTheDocument();
