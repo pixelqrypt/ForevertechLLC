@@ -27,8 +27,60 @@ function svgPlaceholder(text: string, w: number, h: number) {
   return `data:image/svg+xml;base64,${Buffer.from(svg).toString('base64')}`;
 }
 
+function sizeForPlatform(platform: Platform): string {
+  if (platform === 'instagram') return '1024x1024';
+  return '1536x1024';
+}
+
+function imagesEndpoint(baseUrl: string): string {
+  const trimmed = baseUrl.trim().replace(/\/$/, '');
+  return trimmed.endsWith('/v1') ? `${trimmed}/images/generations` : `${trimmed}/v1/images/generations`;
+}
+
 export async function generateImageForPlatform(provider: Provider, prompt: string, platform: Platform) {
   const { w, h, label } = ratioForPlatform(platform);
-  const url = svgPlaceholder(`${platform} ${label}`, w, h);
-  return { image_url: url, meta: { provider, width: w, height: h, ratio: label } };
+  const fallbackUrl = svgPlaceholder(`${platform} ${label}`, w, h);
+
+  if (provider !== 'dalle') {
+    return { image_url: fallbackUrl, meta: { provider, width: w, height: h, ratio: label } };
+  }
+
+  const apiKey = (process.env.OPENAI_API_KEY || '').trim();
+  if (!apiKey) {
+    return { image_url: fallbackUrl, meta: { provider, width: w, height: h, ratio: label } };
+  }
+
+  try {
+    const response = await fetch(imagesEndpoint(process.env.OPENAI_BASE_URL || 'https://api.openai.com'), {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${apiKey}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        model: 'gpt-image-1',
+        prompt,
+        size: sizeForPlatform(platform),
+      }),
+    });
+
+    if (!response.ok) {
+      return { image_url: fallbackUrl, meta: { provider, width: w, height: h, ratio: label } };
+    }
+
+    const json = (await response.json()) as {
+      data?: Array<{ url?: string; b64_json?: string }>;
+    };
+    const firstImage = Array.isArray(json.data) ? json.data[0] : undefined;
+
+    if (firstImage?.url) {
+      return { image_url: firstImage.url, meta: { provider, width: w, height: h, ratio: label } };
+    }
+
+    if (firstImage?.b64_json) {
+      return { image_url: `data:image/png;base64,${firstImage.b64_json}`, meta: { provider, width: w, height: h, ratio: label } };
+    }
+  } catch {}
+
+  return { image_url: fallbackUrl, meta: { provider, width: w, height: h, ratio: label } };
 }

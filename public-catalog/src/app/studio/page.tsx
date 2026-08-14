@@ -765,11 +765,13 @@ function StudioPageInner() {
 
     try {
       const endpoint = '/api/generate/image';
+      const imageProvider = 'dalle';
       const payload = { 
         prompt, 
         negative_prompt: "cartoon, anime, low poly, blurry, noisy, overexposed, washed out, flat lighting, distorted buildings, crooked horizons, text, watermark, logo, people, vehicles in close-up, messy composition, excessive neon everywhere, cyberpunk street scene",
         width: 1024, 
         height: 1024,
+        provider: imageProvider,
         quantum_mode: quantumMode,
         use_quantum_seed: quantumMode,
         quantum_session_id: quantumSessionId,
@@ -946,7 +948,7 @@ function StudioPageInner() {
           body: JSON.stringify({
             topic: prompt,
             platforms: ['twitter'],
-            imageProvider: 'mock',
+            imageProvider,
             safetyEnabled: true,
             autoSocialEnabled: true,
             mode: 'full',
