@@ -164,6 +164,7 @@ function StudioPageInner() {
   const [isPosting, setIsPosting] = useState(false);
   const [scheduleAt, setScheduleAt] = useState<string>('');
   const [ipfsEnabled, setIpfsEnabled] = useState<boolean>(false);
+  const [assetVisibility, setAssetVisibility] = useState<'public' | 'private'>('public');
   const [quantumMode, setQuantumMode] = useState<boolean>(false);
   const [quantumUnlocked, setQuantumUnlocked] = useState<boolean>(false);
   const [quantumSessionId, setQuantumSessionId] = useState<string>('');
@@ -973,7 +974,6 @@ function StudioPageInner() {
         const storedUserStr = localStorage.getItem('user');
         const storedUser = storedUserStr ? JSON.parse(storedUserStr) : null;
         const userName = storedUser?.name || storedUser?.email || 'Anonymous Artist';
-        const userId = storedUser?.id || 'anonymous';
         const catalogName = `${userName.split(' ')[0]}'s Catalog`;
         let deviceId = localStorage.getItem('device_id');
         if (!deviceId) {
@@ -986,8 +986,9 @@ function StudioPageInner() {
           prompt,
           userName,
           catalogName,
-          userId,
           deviceId,
+          visibility: assetVisibility,
+          isQuantumVerified: quantumMode,
         };
 
         const cacheKey = 'ft.gallery.cache';
@@ -1010,10 +1011,11 @@ function StudioPageInner() {
             prompt,
             userName,
             catalogName,
-            userId,
             deviceId,
             isFavorite: false,
+            isQuantumVerified: quantumMode,
             createdAt: new Date().toISOString(),
+            visibility: assetVisibility,
           };
           next.unshift(localItem);
           localStorage.setItem(cacheKey, JSON.stringify(next.slice(0, 250)));
@@ -1566,6 +1568,59 @@ function StudioPageInner() {
                   <input type="checkbox" className="w-4 h-4 accent-green-500" checked={ipfsEnabled} onChange={e => setIpfsEnabled(e.target.checked)} />
                   <span className={ipfsEnabled ? 'text-green-300 font-semibold' : 'text-gray-300'}>Public Link Upload</span>
                 </label>
+              </div>
+              <div className="rounded-xl border border-gray-700 bg-gray-900/60 p-4">
+                <div className="text-sm font-semibold text-white">Marketplace Visibility</div>
+                <div className="mt-3 grid gap-3 md:grid-cols-2">
+                  <label
+                    className={`rounded-lg border p-3 transition-all cursor-pointer ${
+                      assetVisibility === 'public' ? 'border-emerald-400 bg-emerald-500/10' : 'border-gray-700 hover:border-gray-600'
+                    }`}
+                  >
+                    <div className="flex items-start gap-3">
+                      <input
+                        type="radio"
+                        name="assetVisibility"
+                        aria-label="Public asset"
+                        className="mt-1 h-4 w-4 accent-emerald-500"
+                        checked={assetVisibility === 'public'}
+                        onChange={() => setAssetVisibility('public')}
+                      />
+                      <div>
+                        <span className={assetVisibility === 'public' ? 'block font-semibold text-white' : 'block text-gray-300'}>
+                          Public asset
+                        </span>
+                        <span className="mt-1 block text-xs text-gray-400">
+                          Show this generation in Marketplace and keep it available for public browsing.
+                        </span>
+                      </div>
+                    </div>
+                  </label>
+                  <label
+                    className={`rounded-lg border p-3 transition-all cursor-pointer ${
+                      assetVisibility === 'private' ? 'border-amber-400 bg-amber-500/10' : 'border-gray-700 hover:border-gray-600'
+                    }`}
+                  >
+                    <div className="flex items-start gap-3">
+                      <input
+                        type="radio"
+                        name="assetVisibility"
+                        aria-label="Private asset"
+                        className="mt-1 h-4 w-4 accent-amber-500"
+                        checked={assetVisibility === 'private'}
+                        onChange={() => setAssetVisibility('private')}
+                      />
+                      <div>
+                        <span className={assetVisibility === 'private' ? 'block font-semibold text-white' : 'block text-gray-300'}>
+                          Private asset
+                        </span>
+                        <span className="mt-1 block text-xs text-gray-400">
+                          Keep this generation in your personal gallery only until you publish it later.
+                        </span>
+                      </div>
+                    </div>
+                  </label>
+                </div>
               </div>
               <div className="rounded-lg border border-gray-700 bg-gray-900/70 p-3 text-sm text-gray-300">
                 {generationMode === 'real_quantum'

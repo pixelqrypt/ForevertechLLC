@@ -11,6 +11,7 @@ export interface GalleryItem {
   isQuantumVerified?: boolean;
   isNft?: boolean;
   nftId?: string;
+  visibility?: 'public' | 'private';
 }
 
 declare global {
@@ -28,14 +29,25 @@ if (!global.galleryStore) {
       userId: 'neo-123',
       isFavorite: true,
       isQuantumVerified: true,
-      createdAt: new Date().toISOString()
+      createdAt: new Date().toISOString(),
+      visibility: 'public',
     }
   ];
 }
 
-export const getGalleryItems = () => global.galleryStore;
+const normalizeVisibility = (value: GalleryItem['visibility']) => (value === 'private' ? 'private' : 'public');
 
-export const addGalleryItem = (item: Omit<GalleryItem, 'id' | 'createdAt' | 'isFavorite' | 'isQuantumVerified' | 'isNft' | 'nftId'> & Partial<Pick<GalleryItem, 'isQuantumVerified' | 'isNft' | 'nftId'>>) => {
+const normalizeGalleryItem = (item: GalleryItem): GalleryItem => ({
+  ...item,
+  visibility: normalizeVisibility(item.visibility),
+});
+
+export const getGalleryItems = () => global.galleryStore.map(normalizeGalleryItem);
+
+export const addGalleryItem = (
+  item: Omit<GalleryItem, 'id' | 'createdAt' | 'isFavorite' | 'isQuantumVerified' | 'isNft' | 'nftId'> &
+    Partial<Pick<GalleryItem, 'isQuantumVerified' | 'isNft' | 'nftId'>>
+) => {
   const newItem: GalleryItem = {
     ...item,
     id: `gal_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
@@ -43,10 +55,11 @@ export const addGalleryItem = (item: Omit<GalleryItem, 'id' | 'createdAt' | 'isF
     isQuantumVerified: item.isQuantumVerified || false,
     isNft: item.isNft || false,
     nftId: item.nftId,
-    createdAt: new Date().toISOString()
+    createdAt: new Date().toISOString(),
+    visibility: normalizeVisibility(item.visibility),
   };
   global.galleryStore = [newItem, ...global.galleryStore];
-  return newItem;
+  return normalizeGalleryItem(newItem);
 };
 
 export const toggleFavorite = (id: string) => {
@@ -54,5 +67,12 @@ export const toggleFavorite = (id: string) => {
   if (item) {
     item.isFavorite = !item.isFavorite;
   }
-  return item;
+  return item ? normalizeGalleryItem(item) : item;
+};
+
+export const updateGalleryItemVisibility = (id: string, visibility: 'public' | 'private') => {
+  const item = global.galleryStore.find((candidate) => candidate.id === id);
+  if (!item) return null;
+  item.visibility = normalizeVisibility(visibility);
+  return normalizeGalleryItem(item);
 };

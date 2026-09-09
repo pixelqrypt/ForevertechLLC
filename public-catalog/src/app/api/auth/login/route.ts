@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
+import { applyOwnerSession } from "@/lib/ownerSession";
 
 function getSupabase() {
   const url = (process.env.NEXT_PUBLIC_SUPABASE_URL || "").trim();
@@ -51,7 +52,10 @@ export async function POST(request: Request) {
       return NextResponse.json({ success: false, error: error?.message || "login_failed" }, { status: 401 });
     }
 
-    return NextResponse.json({ success: true, user: normalizeUser(data.user) }, { status: 200 });
+    const user = normalizeUser(data.user);
+    const response = NextResponse.json({ success: true, user }, { status: 200 });
+    applyOwnerSession(response, { userId: user.id });
+    return response;
   } catch (e: unknown) {
     return NextResponse.json(
       { success: false, error: e instanceof Error ? e.message : "internal_error" },

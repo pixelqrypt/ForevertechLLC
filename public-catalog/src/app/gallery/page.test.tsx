@@ -183,4 +183,135 @@ describe('GalleryPage creator tab', () => {
       expect(screen.getByRole('button', { name: 'Share Later' })).toBeInTheDocument();
     });
   });
+
+  it('updates visibility from My Gallery and reflects the new visibility state', async () => {
+    const fetchMock = vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
+      const url = typeof input === 'string' ? input : input instanceof URL ? input.toString() : input.url;
+
+      if (url.includes('/api/gallery') && (!init || init.method === undefined)) {
+        return {
+          ok: true,
+          json: async () => ({
+            items: [
+              {
+                id: 'gallery-1',
+                imageUrl: 'https://example.com/1.png',
+                prompt: 'quantum skyline',
+                printifyPreviewUrl: 'https://printify.example/gallery-sample.png',
+                printType: 'all_over_print',
+                productName: 'AOP Tee',
+                userName: 'Test User',
+                catalogName: 'Test Catalog',
+                userId: 'user-1',
+                deviceId: 'device-1',
+                isFavorite: false,
+                createdAt: '2026-06-29T00:00:00.000Z',
+                isQuantumVerified: true,
+                visibility: 'public',
+              },
+            ],
+          }),
+        } as Response;
+      }
+
+      if (url.includes('/api/gallery/gallery-1/visibility')) {
+        return {
+          ok: true,
+          json: async () => ({
+            success: true,
+            item: {
+              id: 'gallery-1',
+              visibility: 'private',
+            },
+          }),
+        } as Response;
+      }
+
+      return {
+        ok: true,
+        json: async () => ({}),
+      } as Response;
+    });
+
+    global.fetch = fetchMock as typeof fetch;
+    useAuthMock.mockReturnValue({
+      user: {
+        id: 'user-1',
+        name: 'Test User',
+        email: 'test@example.com',
+        premiumCreator: false,
+      },
+    });
+
+    render(<GalleryPage />);
+
+    await waitFor(() => {
+      expect(screen.getByRole('button', { name: /make private/i })).toBeInTheDocument();
+    });
+
+    fireEvent.click(screen.getByRole('button', { name: /make private/i }));
+
+    await waitFor(() => {
+      expect(fetchMock).toHaveBeenCalledWith(
+        expect.stringContaining('/api/gallery/gallery-1/visibility'),
+        expect.objectContaining({ method: 'POST' }),
+      );
+      expect(screen.getByRole('button', { name: /make public/i })).toBeInTheDocument();
+    });
+  });
+
+  it('excludes anonymous items that do not match the current device or trusted user id', async () => {
+    global.fetch = vi.fn(async (input: RequestInfo | URL) => {
+      const url = typeof input === 'string' ? input : input instanceof URL ? input.toString() : input.url;
+      if (url.includes('/api/gallery')) {
+        return {
+          ok: true,
+          json: async () => ({
+            items: [
+              {
+                id: 'gallery-mine',
+                imageUrl: 'https://example.com/1.png',
+                prompt: 'my item',
+                userName: 'Anonymous Artist',
+                catalogName: 'Test Catalog',
+                userId: undefined,
+                deviceId: 'device-1',
+                isFavorite: false,
+                createdAt: '2026-06-29T00:00:00.000Z',
+                visibility: 'public',
+              },
+              {
+                id: 'gallery-foreign',
+                imageUrl: 'https://example.com/2.png',
+                prompt: 'foreign item',
+                userName: 'Anonymous Artist',
+                catalogName: 'Other Catalog',
+                userId: undefined,
+                deviceId: 'device-999',
+                isFavorite: false,
+                createdAt: '2026-06-29T01:00:00.000Z',
+                visibility: 'public',
+              },
+            ],
+          }),
+        } as Response;
+      }
+      return {
+        ok: true,
+        json: async () => ({}),
+      } as Response;
+    }) as typeof fetch;
+
+    useAuthMock.mockReturnValue({
+      user: null,
+    });
+
+    render(<GalleryPage />);
+
+    await waitFor(() => {
+      expect(screen.getByText('my item')).toBeInTheDocument();
+    });
+
+    expect(screen.queryByText('foreign item')).not.toBeInTheDocument();
+  });
 });

@@ -41,6 +41,7 @@ export function Header() {
     { href: '/', label: 'Home', visible: true },
     { href: '/studio', label: 'Studio', visible: true },
     { href: '/gallery', label: 'Gallery', visible: true },
+    { href: '/marketplace', label: 'Marketplace', visible: true },
     { href: '/about', label: 'About', visible: true },
     { href: '/support', label: 'Support', visible: true },
     { href: '/faqs', label: 'FAQs', visible: true },
@@ -203,6 +204,13 @@ export function Header() {
               onClick={() => setIsMobileMenuOpen(false)}
             >
               Gallery
+            </Link>
+            <Link
+              href="/marketplace"
+              className="text-base font-medium text-zinc-300 hover:text-white transition-colors py-2"
+              onClick={() => setIsMobileMenuOpen(false)}
+            >
+              Marketplace
             </Link>
             <Link 
               href="/about" 

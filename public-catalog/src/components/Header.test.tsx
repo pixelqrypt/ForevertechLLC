@@ -98,6 +98,7 @@ describe('Header', () => {
     expect(options).toContain('Home');
     expect(options).toContain('Studio');
     expect(options).toContain('Gallery');
+    expect(options).toContain('Marketplace');
     expect(options).toContain('Support');
     expect(options).not.toContain('MultiPoster');
     expect(options).not.toContain('Tools');
