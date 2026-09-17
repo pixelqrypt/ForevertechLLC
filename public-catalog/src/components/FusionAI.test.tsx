@@ -1,7 +1,7 @@
 
 import '@testing-library/jest-dom/vitest';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
-import { describe, it, expect, vi } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { FusionAI } from './FusionAI';
 import React from 'react';
 
@@ -24,6 +24,11 @@ global.WebSocket = WebSocketMock as unknown as typeof WebSocket;
 
 describe('FusionAI Component', () => {
   const onImageGenerated = vi.fn();
+  let canvasQueue: Array<{
+    label: string;
+    canvas: HTMLCanvasElement & { __label?: string };
+    operations: Array<Record<string, unknown>>;
+  }> = [];
 
   global.FileReader = class FileReaderMock {
     result: string | ArrayBuffer | null = null;
@@ -33,6 +38,18 @@ describe('FusionAI Component', () => {
       if (this.onload) this.onload.call(this as unknown as FileReader, {} as ProgressEvent<FileReader>);
     }
   } as unknown as typeof FileReader;
+
+  beforeEach(() => {
+    onImageGenerated.mockReset();
+    fetchMock.mockReset();
+    webSocketSpy.mockReset();
+    canvasQueue = [];
+  });
+
+  afterEach(() => {
+    vi.restoreAllMocks();
+    vi.unstubAllGlobals();
+  });
 
   it('renders the trigger button and opens the modal', () => {
     render(<FusionAI prompt="test prompt" onImageGenerated={onImageGenerated} />);
@@ -107,5 +124,150 @@ describe('FusionAI Component', () => {
     await waitFor(() => {
         expect(webSocketSpy).toHaveBeenCalledWith('ws://127.0.0.1:8000/progress/test-job-123');
     });
+  });
+
+  it('keeps the uploaded image in front while fading into the generated background', async () => {
+    const makeCanvasRecord = (label: string) => {
+      const operations: Array<Record<string, unknown>> = [];
+      let currentAlpha = 1;
+      let currentComposite = 'source-over';
+      const gradient = { addColorStop: vi.fn() };
+      const ctx = {
+        operations,
+        save: vi.fn(() => operations.push({ type: 'save' })),
+        restore: vi.fn(() => operations.push({ type: 'restore' })),
+        drawImage: vi.fn((source: unknown) => operations.push({
+          type: 'drawImage',
+          source,
+          alpha: currentAlpha,
+          composite: currentComposite,
+        })),
+        createImageData: vi.fn((width: number, height: number) => ({
+          data: new Uint8ClampedArray(width * height * 4),
+        })),
+        putImageData: vi.fn(),
+        createLinearGradient: vi.fn(() => gradient),
+        createRadialGradient: vi.fn(() => gradient),
+        fillRect: vi.fn(() => operations.push({ type: 'fillRect', alpha: currentAlpha, composite: currentComposite })),
+        beginPath: vi.fn(),
+        moveTo: vi.fn(),
+        arcTo: vi.fn(),
+        closePath: vi.fn(),
+        clip: vi.fn(),
+        rect: vi.fn(),
+        stroke: vi.fn(),
+      } as unknown as CanvasRenderingContext2D & { operations: Array<Record<string, unknown>> };
+
+      Object.defineProperties(ctx, {
+        globalAlpha: {
+          get: () => currentAlpha,
+          set: (value: number) => {
+            currentAlpha = value;
+            operations.push({ type: 'setAlpha', value });
+          },
+        },
+        globalCompositeOperation: {
+          get: () => currentComposite,
+          set: (value: string) => {
+            currentComposite = value;
+            operations.push({ type: 'setComposite', value });
+          },
+        },
+        fillStyle: {
+          get: () => undefined,
+          set: (value: unknown) => operations.push({ type: 'setFillStyle', value }),
+        },
+        strokeStyle: {
+          get: () => undefined,
+          set: (value: unknown) => operations.push({ type: 'setStrokeStyle', value }),
+        },
+        lineWidth: {
+          get: () => 0,
+          set: (value: number) => operations.push({ type: 'setLineWidth', value }),
+        },
+        imageSmoothingEnabled: {
+          get: () => true,
+          set: () => undefined,
+        },
+        imageSmoothingQuality: {
+          get: () => 'high',
+          set: () => undefined,
+        },
+      });
+
+      const canvas = {
+        __label: label,
+        width: 0,
+        height: 0,
+        getContext: vi.fn(() => ctx),
+        toBlob: vi.fn((callback: BlobCallback) => callback(new Blob(['png'], { type: 'image/png' }))),
+      } as unknown as HTMLCanvasElement & { __label?: string };
+
+      return { label, canvas, operations };
+    };
+
+    const canvasRecords = ['design', 'noise', 'out'].map(makeCanvasRecord);
+    canvasQueue = [...canvasRecords];
+
+    const realCreateElement = document.createElement.bind(document);
+    vi.spyOn(document, 'createElement').mockImplementation(((...args: Parameters<typeof document.createElement>) => {
+      const [tagName] = args;
+      if (tagName === 'canvas') {
+        const nextCanvas = canvasQueue.shift();
+        if (!nextCanvas) {
+          throw new Error('unexpected_canvas_request');
+        }
+        return nextCanvas.canvas;
+      }
+      return realCreateElement(...args);
+    }) as typeof document.createElement);
+
+    const createImageBitmapMock = vi.fn()
+      .mockResolvedValueOnce({ width: 1024, height: 1024, __label: 'base' } as ImageBitmap)
+      .mockResolvedValueOnce({ width: 700, height: 900, __label: 'user' } as ImageBitmap);
+    vi.stubGlobal('createImageBitmap', createImageBitmapMock);
+
+    fetchMock.mockResolvedValue({
+      ok: true,
+      blob: () => Promise.resolve(new Blob(['base'], { type: 'image/png' })),
+    } as Response);
+
+    render(
+      <FusionAI
+        prompt="quantum aura portrait"
+        onImageGenerated={onImageGenerated}
+        baseImageUrl="http://example.com/base.png"
+      />
+    );
+    fireEvent.click(screen.getByText('Advanced Fusion Extension'));
+
+    const file = new File(['portrait'], 'portrait.png', { type: 'image/png' });
+    const fileInput = document.querySelector('input[type="file"]') as HTMLInputElement | null;
+    expect(fileInput).not.toBeNull();
+
+    await waitFor(() => {
+      fireEvent.change(fileInput as HTMLInputElement, { target: { files: [file] } });
+    });
+
+    fireEvent.click(screen.getByText(/Fuse 1 Image with Prompt/i));
+
+    await waitFor(() => {
+      expect(onImageGenerated).toHaveBeenCalledWith('data:image/png;base64,AAAA');
+    });
+
+    const outOperations = canvasRecords.find((record) => record.label === 'out')?.operations ?? [];
+    const foregroundDraws = outOperations.filter((operation) =>
+      operation.type === 'drawImage' && (operation.source as { __label?: string } | undefined)?.__label === 'user'
+    );
+
+    expect(foregroundDraws).toHaveLength(1);
+    expect(foregroundDraws[0]).toMatchObject({
+      composite: 'source-over',
+    });
+    expect((foregroundDraws[0].alpha as number) ?? 0).toBeGreaterThan(0.8);
+    expect(outOperations).toContainEqual(expect.objectContaining({
+      type: 'setComposite',
+      value: 'destination-in',
+    }));
   });
 });

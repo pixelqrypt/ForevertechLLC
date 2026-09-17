@@ -533,13 +533,13 @@ async function fuseClientSide({ baseImageUrl, files, prompt }: { baseImageUrl: s
 
   drawCover(dctx, baseBitmap, 0, 0, size, size, baseBitmap.width, baseBitmap.height);
 
-  const baseAlpha = userBitmaps.length <= 1 ? 0.62 : 0.45;
+  const baseAlpha = userBitmaps.length <= 1 ? 0.18 : 0.14;
   for (let i = 0; i < userBitmaps.length; i++) {
     const bm = userBitmaps[i];
     dctx.save();
-    dctx.globalAlpha = baseAlpha * (0.92 ** i);
-    dctx.globalCompositeOperation = i === 0 ? 'overlay' : 'soft-light';
-    const pad = size * 0.08;
+    dctx.globalAlpha = baseAlpha * (0.9 ** i);
+    dctx.globalCompositeOperation = i === 0 ? 'soft-light' : 'overlay';
+    const pad = size * 0.04;
     drawContain(dctx, bm, pad, pad, size - pad * 2, size - pad * 2, bm.width, bm.height);
     dctx.restore();
   }
@@ -585,6 +585,41 @@ async function fuseClientSide({ baseImageUrl, files, prompt }: { baseImageUrl: s
   clipRoundRect(octx, px, py, printW, printH, Math.round(size * 0.03));
   drawCover(octx, design, px, py, printW, printH, size, size);
   octx.restore();
+
+  // Keep the uploaded image visible in front while letting the abstract background show through the edges.
+  const foregroundPad = Math.round(size * 0.02);
+  const fgX = px + foregroundPad;
+  const fgY = py + foregroundPad;
+  const fgW = printW - foregroundPad * 2;
+  const fgH = printH - foregroundPad * 2;
+  const fadeInner = Math.min(fgW, fgH) * 0.18;
+  const fadeOuter = Math.max(fgW, fgH) * 0.68;
+  const foregroundAlpha = userBitmaps.length <= 1 ? 0.96 : 0.82;
+
+  for (let i = 0; i < userBitmaps.length; i++) {
+    const bm = userBitmaps[i];
+    octx.save();
+    clipRoundRect(octx, fgX, fgY, fgW, fgH, Math.round(size * 0.025));
+    octx.globalCompositeOperation = 'source-over';
+    octx.globalAlpha = foregroundAlpha * (0.92 ** i);
+    drawContain(octx, bm, fgX, fgY, fgW, fgH, bm.width, bm.height);
+
+    const fade = octx.createRadialGradient(
+      fgX + fgW / 2,
+      fgY + fgH / 2,
+      fadeInner,
+      fgX + fgW / 2,
+      fgY + fgH / 2,
+      fadeOuter,
+    );
+    fade.addColorStop(0, 'rgba(0,0,0,1)');
+    fade.addColorStop(0.72, 'rgba(0,0,0,0.98)');
+    fade.addColorStop(1, 'rgba(0,0,0,0.58)');
+    octx.globalCompositeOperation = 'destination-in';
+    octx.fillStyle = fade;
+    octx.fillRect(fgX, fgY, fgW, fgH);
+    octx.restore();
+  }
 
   octx.save();
   octx.globalCompositeOperation = 'source-over';
