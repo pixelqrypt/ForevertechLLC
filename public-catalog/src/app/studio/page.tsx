@@ -27,6 +27,62 @@ function isRecord(v: unknown): v is Record<string, unknown> {
 
 const QUANTUM_PENDING_PROMPT_KEY = 'foreverteck.studio.pendingQuantumPrompt';
 const QUANTUM_UNLOCK_KEY = 'foreverteck.studio.quantumUnlock';
+const PROMPT_BRAIN_MEMORY_KEY = 'foreverteck.studio.promptBrainMemory';
+
+type PromptSuggestionCategory = 'style' | 'color' | 'composition' | 'mood';
+
+type PromptSuggestion = {
+  id: string;
+  label: string;
+  insertText: string;
+  category: PromptSuggestionCategory;
+  matchers: string[];
+};
+
+const PROMPT_SUGGESTIONS: PromptSuggestion[] = [
+  {
+    id: 'kawaii-pastel-glow',
+    label: 'kawaii pastel glow',
+    insertText: 'kawaii pastel glow',
+    category: 'style',
+    matchers: ['kawaii', 'cute', 'soft'],
+  },
+  {
+    id: 'magenta-pink-palette',
+    label: 'magenta pink palette',
+    insertText: 'magenta pink palette',
+    category: 'color',
+    matchers: ['magenta', 'pink', 'fuchsia', 'rose'],
+  },
+  {
+    id: 'open-center-aura-ring',
+    label: 'open center aura ring',
+    insertText: 'open center aura ring',
+    category: 'composition',
+    matchers: ['open center', 'open', 'center', 'ring', 'hollow'],
+  },
+  {
+    id: 'cotton-candy-bloom',
+    label: 'cotton candy bloom',
+    insertText: 'cotton candy bloom',
+    category: 'mood',
+    matchers: ['pink', 'sweet', 'dreamy', 'cotton'],
+  },
+  {
+    id: 'soft-fractal-outline',
+    label: 'soft fractal outline',
+    insertText: 'soft fractal outline',
+    category: 'composition',
+    matchers: ['outline', 'edge', 'fractal', 'border'],
+  },
+  {
+    id: 'open-core-glow',
+    label: 'open core glow',
+    insertText: 'open core glow',
+    category: 'composition',
+    matchers: ['open core', 'open center', 'glow', 'core'],
+  },
+];
 
 type StoredQuantumUnlock = {
   prompt: string;
@@ -35,6 +91,60 @@ type StoredQuantumUnlock = {
 
 function normalizeStudioQuantumPrompt(value: string): string {
   return value.trim().replace(/\s+/g, ' ');
+}
+
+function normalizePromptBrainText(value: string): string {
+  return value.toLowerCase().replace(/[^a-z0-9\s]+/g, ' ').replace(/\s+/g, ' ').trim();
+}
+
+function readPromptBrainMemory(): Record<string, number> {
+  if (typeof window === 'undefined') return {};
+  try {
+    const raw = localStorage.getItem(PROMPT_BRAIN_MEMORY_KEY);
+    if (!raw) return {};
+    const parsed = JSON.parse(raw) as Record<string, unknown>;
+    return Object.fromEntries(
+      Object.entries(parsed).filter(([, value]) => typeof value === 'number' && Number.isFinite(value)),
+    ) as Record<string, number>;
+  } catch {
+    return {};
+  }
+}
+
+function writePromptBrainMemory(memory: Record<string, number>) {
+  if (typeof window === 'undefined') return;
+  localStorage.setItem(PROMPT_BRAIN_MEMORY_KEY, JSON.stringify(memory));
+}
+
+function appendPromptSuggestion(prompt: string, phrase: string): string {
+  const normalizedPrompt = normalizePromptBrainText(prompt);
+  const normalizedPhrase = normalizePromptBrainText(phrase);
+  if (normalizedPrompt.includes(normalizedPhrase)) return prompt;
+  const trimmed = prompt.trim();
+  if (!trimmed) return phrase;
+  const separator = /[,;:]$/.test(trimmed) ? ' ' : ', ';
+  return `${trimmed}${separator}${phrase}`;
+}
+
+function buildPromptSuggestions(prompt: string, memory: Record<string, number>): PromptSuggestion[] {
+  const normalizedPrompt = normalizePromptBrainText(prompt);
+  if (!normalizedPrompt) return [];
+  return PROMPT_SUGGESTIONS
+    .map((suggestion) => {
+      if (normalizedPrompt.includes(normalizePromptBrainText(suggestion.insertText))) return null;
+      const matchScore = suggestion.matchers.reduce((score, matcher) => {
+        const normalizedMatcher = normalizePromptBrainText(matcher);
+        return normalizedPrompt.includes(normalizedMatcher) ? score + 1 : score;
+      }, 0);
+      if (matchScore === 0) return null;
+      return {
+        suggestion,
+        score: matchScore + (memory[suggestion.id] || 0) * 0.35,
+      };
+    })
+    .filter((entry): entry is { suggestion: PromptSuggestion; score: number } => entry !== null)
+    .sort((a, b) => b.score - a.score || a.suggestion.label.localeCompare(b.suggestion.label))
+    .map((entry) => entry.suggestion);
 }
 
 function readStoredUser() {
@@ -140,6 +250,7 @@ function StudioPageInner() {
   const sharedPrompt = (searchParams?.get('sharePrompt') || '').trim();
   const [hydrated, setHydrated] = useState(false);
   const [prompt, setPrompt] = useState('');
+  const [promptBrainMemory, setPromptBrainMemory] = useState<Record<string, number>>({});
   const [crossOptimizeLoading, setCrossOptimizeLoading] = useState(false);
   const [crossOptimizeError, setCrossOptimizeError] = useState<string | null>(null);
   const [crossOptimizeReports, setCrossOptimizeReports] = useState<Array<{ model: string; role: string; output: string; error?: string }> | null>(null);
@@ -241,10 +352,24 @@ function StudioPageInner() {
     }
   }, [hydrated]);
 
+  const promptSuggestions = useMemo(
+    () => buildPromptSuggestions(prompt, promptBrainMemory).slice(0, 6),
+    [prompt, promptBrainMemory],
+  );
+
   const addLog = (msg: string, type: 'info' | 'error' | 'warn' | 'success' = 'info', code?: string) => {
     const t = new Date();
     const time = t.toISOString().split('T')[1]?.slice(0, 8) || t.toISOString();
     setLogs((prev) => [...prev, { time, msg, type, code }]);
+  };
+
+  const applyPromptSuggestion = (suggestion: PromptSuggestion) => {
+    setPrompt((prev) => appendPromptSuggestion(prev, suggestion.insertText));
+    setPromptBrainMemory((prev) => {
+      const next = { ...prev, [suggestion.id]: (prev[suggestion.id] || 0) + 1 };
+      writePromptBrainMemory(next);
+      return next;
+    });
   };
 
   useEffect(() => {
@@ -254,6 +379,11 @@ function StudioPageInner() {
     setPostContent((prev) => (prev && prev.trim() ? prev : scannedBackText));
     addLog(`Scanned back text: ${scannedBackText}`, 'success', 'qr_scan');
   }, [hydrated, scannedBackText]);
+
+  useEffect(() => {
+    if (!hydrated) return;
+    setPromptBrainMemory(readPromptBrainMemory());
+  }, [hydrated]);
 
   useEffect(() => {
     if (!hydrated) return;
@@ -1480,6 +1610,29 @@ function StudioPageInner() {
                 value={prompt}
                 onChange={e => setPrompt(e.target.value)}
               />
+              {promptSuggestions.length > 0 && (
+                <div className="rounded-lg border border-fuchsia-500/20 bg-fuchsia-500/5 p-3">
+                  <div className="flex items-center justify-between gap-3">
+                    <div>
+                      <div className="text-sm font-semibold text-fuchsia-200">Prompt Brain</div>
+                      <div className="text-xs text-fuchsia-100/70">Live phrase suggestions that learn from what you click.</div>
+                    </div>
+                  </div>
+                  <div className="mt-3 flex flex-wrap gap-2">
+                    {promptSuggestions.map((suggestion) => (
+                      <button
+                        key={suggestion.id}
+                        type="button"
+                        aria-label={`Use suggestion ${suggestion.label}`}
+                        onClick={() => applyPromptSuggestion(suggestion)}
+                        className="rounded-full border border-fuchsia-400/30 bg-gray-900/80 px-3 py-1.5 text-sm text-fuchsia-100 hover:border-fuchsia-300 hover:bg-fuchsia-500/10"
+                      >
+                        {suggestion.label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
               <div className="flex items-center gap-3">
                 <button
                   onClick={crossOptimizePrompt}

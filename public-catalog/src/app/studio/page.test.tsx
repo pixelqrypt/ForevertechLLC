@@ -146,6 +146,22 @@ describe('StudioPage calendar date range', () => {
     expect(btn.disabled).toBe(false);
   });
 
+  it('shows live prompt suggestions and appends a selected phrase to the prompt', async () => {
+    await renderStudioPage();
+    const textarea = screen.getByPlaceholderText('Describe the image and post content you want to generate...') as HTMLTextAreaElement;
+
+    fireEvent.change(textarea, { target: { value: 'Kawaii magenta, pink with open center' } });
+
+    expect(screen.getByText('Prompt Brain')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Use suggestion kawaii pastel glow' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Use suggestion magenta pink palette' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Use suggestion open center aura ring' })).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Use suggestion open center aura ring' }));
+
+    expect(textarea.value).toContain('open center aura ring');
+  });
+
   it('requests real image providers for generation and content factory flows', async () => {
     const calls: Array<{ url: string; body: Record<string, unknown> | null }> = [];
     global.fetch = vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
