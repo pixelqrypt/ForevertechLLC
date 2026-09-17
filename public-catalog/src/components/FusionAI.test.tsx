@@ -126,12 +126,16 @@ describe('FusionAI Component', () => {
     });
   });
 
-  it('keeps the uploaded image in front while fading into the generated background', async () => {
+  it('keeps the uploaded image in front while adding a center merge pass with the abstract layer', async () => {
     const makeCanvasRecord = (label: string) => {
       const operations: Array<Record<string, unknown>> = [];
       let currentAlpha = 1;
       let currentComposite = 'source-over';
-      const gradient = { addColorStop: vi.fn() };
+      const makeGradient = (kind: 'linear' | 'radial') => ({
+        addColorStop: vi.fn((offset: number, color: string) => {
+          operations.push({ type: 'gradientStop', kind, offset, color });
+        }),
+      });
       const ctx = {
         operations,
         save: vi.fn(() => operations.push({ type: 'save' })),
@@ -146,8 +150,14 @@ describe('FusionAI Component', () => {
           data: new Uint8ClampedArray(width * height * 4),
         })),
         putImageData: vi.fn(),
-        createLinearGradient: vi.fn(() => gradient),
-        createRadialGradient: vi.fn(() => gradient),
+        createLinearGradient: vi.fn(() => {
+          operations.push({ type: 'createGradient', kind: 'linear' });
+          return makeGradient('linear');
+        }),
+        createRadialGradient: vi.fn(() => {
+          operations.push({ type: 'createGradient', kind: 'radial' });
+          return makeGradient('radial');
+        }),
         fillRect: vi.fn(() => operations.push({ type: 'fillRect', alpha: currentAlpha, composite: currentComposite })),
         beginPath: vi.fn(),
         moveTo: vi.fn(),
@@ -265,9 +275,16 @@ describe('FusionAI Component', () => {
       composite: 'source-over',
     });
     expect((foregroundDraws[0].alpha as number) ?? 0).toBeGreaterThan(0.8);
+    expect(outOperations.filter((operation) =>
+      operation.type === 'createGradient' && operation.kind === 'radial'
+    ).length).toBeGreaterThanOrEqual(2);
     expect(outOperations).toContainEqual(expect.objectContaining({
       type: 'setComposite',
       value: 'destination-in',
+    }));
+    expect(outOperations).toContainEqual(expect.objectContaining({
+      type: 'setComposite',
+      value: 'soft-light',
     }));
   });
 });

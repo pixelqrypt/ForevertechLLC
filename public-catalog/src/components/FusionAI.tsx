@@ -584,6 +584,20 @@ async function fuseClientSide({ baseImageUrl, files, prompt }: { baseImageUrl: s
   octx.save();
   clipRoundRect(octx, px, py, printW, printH, Math.round(size * 0.03));
   drawCover(octx, design, px, py, printW, printH, size, size);
+  const centerFade = octx.createRadialGradient(
+    px + printW / 2,
+    py + printH / 2,
+    Math.min(printW, printH) * 0.04,
+    px + printW / 2,
+    py + printH / 2,
+    Math.max(printW, printH) * 0.52,
+  );
+  centerFade.addColorStop(0, 'rgba(255,255,255,0.28)');
+  centerFade.addColorStop(0.55, 'rgba(255,255,255,0.12)');
+  centerFade.addColorStop(1, 'rgba(255,255,255,0)');
+  octx.globalCompositeOperation = 'screen';
+  octx.fillStyle = centerFade;
+  octx.fillRect(px, py, printW, printH);
   octx.restore();
 
   // Keep the uploaded image visible in front while letting the abstract background show through the edges.
@@ -613,10 +627,27 @@ async function fuseClientSide({ baseImageUrl, files, prompt }: { baseImageUrl: s
       fadeOuter,
     );
     fade.addColorStop(0, 'rgba(0,0,0,1)');
-    fade.addColorStop(0.72, 'rgba(0,0,0,0.98)');
-    fade.addColorStop(1, 'rgba(0,0,0,0.58)');
+    fade.addColorStop(0.6, 'rgba(0,0,0,0.9)');
+    fade.addColorStop(1, 'rgba(0,0,0,0.42)');
     octx.globalCompositeOperation = 'destination-in';
     octx.fillStyle = fade;
+    octx.fillRect(fgX, fgY, fgW, fgH);
+
+    const unionRing = octx.createRadialGradient(
+      fgX + fgW / 2,
+      fgY + fgH / 2,
+      Math.min(fgW, fgH) * 0.08,
+      fgX + fgW / 2,
+      fgY + fgH / 2,
+      Math.max(fgW, fgH) * 0.62,
+    );
+    unionRing.addColorStop(0, 'rgba(255,255,255,0)');
+    unionRing.addColorStop(0.5, 'rgba(255,255,255,0.08)');
+    unionRing.addColorStop(1, 'rgba(255,255,255,0.24)');
+    octx.globalCompositeOperation = 'soft-light';
+    octx.globalAlpha = 0.16 * (0.92 ** i);
+    drawCover(octx, design, fgX, fgY, fgW, fgH, size, size);
+    octx.fillStyle = unionRing;
     octx.fillRect(fgX, fgY, fgW, fgH);
     octx.restore();
   }
