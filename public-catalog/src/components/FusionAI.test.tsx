@@ -274,7 +274,7 @@ describe('FusionAI Component', () => {
     expect(foregroundDraws[0]).toMatchObject({
       composite: 'source-over',
     });
-    expect((foregroundDraws[0].alpha as number) ?? 0).toBeGreaterThan(0.8);
+    expect(foregroundDraws[0].alpha).toBe(0.75);
     expect(outOperations.filter((operation) =>
       operation.type === 'createGradient' && operation.kind === 'radial'
     ).length).toBeGreaterThanOrEqual(2);

@@ -608,7 +608,7 @@ async function fuseClientSide({ baseImageUrl, files, prompt }: { baseImageUrl: s
   const fgH = printH - foregroundPad * 2;
   const fadeInner = Math.min(fgW, fgH) * 0.18;
   const fadeOuter = Math.max(fgW, fgH) * 0.68;
-  const foregroundAlpha = userBitmaps.length <= 1 ? 0.96 : 0.82;
+  const foregroundAlpha = userBitmaps.length <= 1 ? 0.75 : 0.82;
 
   for (let i = 0; i < userBitmaps.length; i++) {
     const bm = userBitmaps[i];
