@@ -295,4 +295,153 @@ describe('FusionAI Component', () => {
       value: 0.1,
     }));
   });
+
+  it('auto-saves the fused image to the signed-in account gallery', async () => {
+    localStorage.setItem('user', JSON.stringify({
+      id: 'user_123',
+      email: 'artist@example.com',
+      name: 'Fusion Artist',
+    }));
+    localStorage.setItem('device_id', 'device_123');
+
+    const makeCanvasRecord = (label: string) => {
+      const operations: Array<Record<string, unknown>> = [];
+      const ctx = {
+        save: vi.fn(),
+        restore: vi.fn(),
+        drawImage: vi.fn(),
+        createImageData: vi.fn((width: number, height: number) => ({
+          data: new Uint8ClampedArray(width * height * 4),
+        })),
+        putImageData: vi.fn(),
+        createLinearGradient: vi.fn(() => ({ addColorStop: vi.fn() })),
+        createRadialGradient: vi.fn(() => ({ addColorStop: vi.fn() })),
+        fillRect: vi.fn(),
+        beginPath: vi.fn(),
+        moveTo: vi.fn(),
+        arcTo: vi.fn(),
+        closePath: vi.fn(),
+        clip: vi.fn(),
+        rect: vi.fn(),
+        stroke: vi.fn(),
+      } as unknown as CanvasRenderingContext2D & { operations: Array<Record<string, unknown>> };
+
+      Object.defineProperties(ctx, {
+        globalAlpha: {
+          get: () => 1,
+          set: () => undefined,
+        },
+        globalCompositeOperation: {
+          get: () => 'source-over',
+          set: () => undefined,
+        },
+        fillStyle: {
+          get: () => undefined,
+          set: () => undefined,
+        },
+        strokeStyle: {
+          get: () => undefined,
+          set: () => undefined,
+        },
+        lineWidth: {
+          get: () => 0,
+          set: () => undefined,
+        },
+        imageSmoothingEnabled: {
+          get: () => true,
+          set: () => undefined,
+        },
+        imageSmoothingQuality: {
+          get: () => 'high',
+          set: () => undefined,
+        },
+      });
+
+      const canvas = {
+        __label: label,
+        width: 0,
+        height: 0,
+        getContext: vi.fn(() => ctx),
+        toBlob: vi.fn((callback: BlobCallback) => callback(new Blob(['png'], { type: 'image/png' }))),
+      } as unknown as HTMLCanvasElement & { __label?: string };
+
+      return { label, canvas, operations };
+    };
+
+    const canvasRecords = ['design', 'noise', 'out'].map(makeCanvasRecord);
+    canvasQueue = [...canvasRecords];
+
+    const realCreateElement = document.createElement.bind(document);
+    vi.spyOn(document, 'createElement').mockImplementation(((...args: Parameters<typeof document.createElement>) => {
+      const [tagName] = args;
+      if (tagName === 'canvas') {
+        const nextCanvas = canvasQueue.shift();
+        if (!nextCanvas) throw new Error('unexpected_canvas_request');
+        return nextCanvas.canvas;
+      }
+      return realCreateElement(...args);
+    }) as typeof document.createElement);
+
+    const createImageBitmapMock = vi.fn()
+      .mockResolvedValueOnce({ width: 1024, height: 1024, __label: 'base' } as ImageBitmap)
+      .mockResolvedValueOnce({ width: 700, height: 900, __label: 'user' } as ImageBitmap);
+    vi.stubGlobal('createImageBitmap', createImageBitmapMock);
+
+    fetchMock.mockImplementation((input: RequestInfo | URL) => {
+      const url = typeof input === 'string' ? input : input instanceof URL ? input.toString() : (input as Request).url;
+      if (url.startsWith('/api/proxy-image')) {
+        return Promise.resolve({
+          ok: true,
+          blob: () => Promise.resolve(new Blob(['base'], { type: 'image/png' })),
+        } as Response);
+      }
+      if (url === '/api/gallery') {
+        return Promise.resolve({
+          ok: true,
+          json: () => Promise.resolve({ success: true, item: { id: 'gallery_1' } }),
+        } as Response);
+      }
+      return Promise.reject(new Error(`Unexpected fetch: ${url}`));
+    });
+
+    render(
+      <FusionAI
+        prompt="signed in fusion"
+        onImageGenerated={onImageGenerated}
+        baseImageUrl="http://example.com/base.png"
+      />
+    );
+    fireEvent.click(screen.getByText('Advanced Fusion Extension'));
+
+    const file = new File(['portrait'], 'portrait.png', { type: 'image/png' });
+    const fileInput = document.querySelector('input[type="file"]') as HTMLInputElement | null;
+    expect(fileInput).not.toBeNull();
+
+    await waitFor(() => {
+      fireEvent.change(fileInput as HTMLInputElement, { target: { files: [file] } });
+    });
+
+    fireEvent.click(screen.getByText(/Fuse 1 Image with Prompt/i));
+
+    await waitFor(() => {
+      expect(fetchMock).toHaveBeenCalledWith(
+        '/api/gallery',
+        expect.objectContaining({
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+        })
+      );
+    });
+
+    const saveCall = fetchMock.mock.calls.find(([url]) => url === '/api/gallery');
+    expect(saveCall).toBeDefined();
+    const body = JSON.parse(String(saveCall?.[1]?.body));
+    expect(body).toMatchObject({
+      imageUrl: 'data:image/png;base64,AAAA',
+      prompt: 'signed in fusion',
+      userName: 'Fusion Artist',
+      catalogName: "Fusion's Catalog",
+      deviceId: 'device_123',
+    });
+  });
 });

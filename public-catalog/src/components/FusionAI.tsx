@@ -18,6 +18,7 @@ export function FusionAI({ prompt, baseImageUrl, onImageGenerated }: FusionAIPro
   const [status, setStatus] = useState<string>('');
   const [progress, setProgress] = useState(0);
   const [error, setError] = useState<string | null>(null);
+  const [saveMessage, setSaveMessage] = useState<string | null>(null);
   const [useUploadedOnly, setUseUploadedOnly] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -62,6 +63,15 @@ export function FusionAI({ prompt, baseImageUrl, onImageGenerated }: FusionAIPro
     setStatus('Initializing...');
     setProgress(0);
     setError(null);
+    setSaveMessage(null);
+
+    const finalizeImage = async (imageUrl: string) => {
+      onImageGenerated(imageUrl);
+      const didSave = await saveFusionImageToAccount(imageUrl, prompt);
+      if (didSave) setSaveMessage('Saved to your account');
+      setIsFusing(false);
+      setIsOpen(false);
+    };
 
     if (useUploadedOnly) {
       try {
@@ -102,9 +112,7 @@ export function FusionAI({ prompt, baseImageUrl, onImageGenerated }: FusionAIPro
         const dataUrl = await canvasToDataUrl(out);
         setProgress(1);
         setStatus('done');
-        onImageGenerated(dataUrl);
-        setIsFusing(false);
-        setIsOpen(false);
+        await finalizeImage(dataUrl);
         return;
       } catch (e) {
         setError(e instanceof Error ? e.message : 'Failed to process uploaded image');
@@ -131,9 +139,7 @@ export function FusionAI({ prompt, baseImageUrl, onImageGenerated }: FusionAIPro
       const fused = await fuseClientSide({ baseImageUrl, files, prompt });
       setProgress(1);
       setStatus('done');
-      onImageGenerated(fused);
-      setIsFusing(false);
-      setIsOpen(false);
+      await finalizeImage(fused);
       return;
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Fusion failed');
@@ -193,9 +199,7 @@ export function FusionAI({ prompt, baseImageUrl, onImageGenerated }: FusionAIPro
             '</text>' +
           '</svg>'
         )}`;
-        onImageGenerated(mockSvg);
-        setIsFusing(false);
-        setIsOpen(false);
+        void finalizeImage(mockSvg);
       }, 2000);
       return;
     }
@@ -208,9 +212,7 @@ export function FusionAI({ prompt, baseImageUrl, onImageGenerated }: FusionAIPro
 
       if (data.status === 'done') {
         const imageUrl = `http://127.0.0.1:8000${data.result}`;
-        onImageGenerated(imageUrl);
-        setIsFusing(false);
-        setIsOpen(false);
+        void finalizeImage(imageUrl);
         ws.close();
       } else if (data.status === 'error') {
         const err = data.error;
@@ -235,6 +237,12 @@ export function FusionAI({ prompt, baseImageUrl, onImageGenerated }: FusionAIPro
         <Sparkles className="w-5 h-5 group-hover:animate-pulse" />
         Advanced Fusion Extension
       </button>
+
+      {saveMessage ? (
+        <div className="mt-3 rounded-lg border border-emerald-500/30 bg-emerald-500/10 px-3 py-2 text-sm text-emerald-300">
+          {saveMessage}
+        </div>
+      ) : null}
 
       {isOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
@@ -516,6 +524,44 @@ async function canvasToDataUrl(canvas: HTMLCanvasElement): Promise<string> {
     reader.onload = () => resolve(String(reader.result || ''));
     reader.readAsDataURL(blob);
   });
+}
+
+async function saveFusionImageToAccount(imageUrl: string, prompt: string): Promise<boolean> {
+  if (typeof window === 'undefined') return false;
+
+  const storedUserRaw = window.localStorage.getItem('user');
+  if (!storedUserRaw) return false;
+
+  let storedUser: { email?: string; name?: string } | null = null;
+  try {
+    storedUser = JSON.parse(storedUserRaw) as { email?: string; name?: string };
+  } catch {
+    return false;
+  }
+
+  const userName = storedUser?.name || storedUser?.email;
+  if (!userName) return false;
+
+  let deviceId = window.localStorage.getItem('device_id');
+  if (!deviceId) {
+    deviceId = `dev_${Date.now()}_${Math.random().toString(36).slice(2, 10)}`;
+    window.localStorage.setItem('device_id', deviceId);
+  }
+
+  const catalogName = `${userName.split(' ')[0]}'s Catalog`;
+  const res = await fetch('/api/gallery', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      imageUrl,
+      prompt: prompt || 'Fusion Image',
+      userName,
+      catalogName,
+      deviceId,
+    }),
+  }).catch(() => null);
+
+  return Boolean(res?.ok);
 }
 
 async function fuseClientSide({ baseImageUrl, files, prompt }: { baseImageUrl: string; files: File[]; prompt: string }) {
