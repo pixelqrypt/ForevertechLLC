@@ -596,6 +596,7 @@ async function fuseClientSide({ baseImageUrl, files, prompt }: { baseImageUrl: s
   centerFade.addColorStop(0.55, 'rgba(255,255,255,0.12)');
   centerFade.addColorStop(1, 'rgba(255,255,255,0)');
   octx.globalCompositeOperation = 'screen';
+  octx.globalAlpha = 0.1;
   octx.fillStyle = centerFade;
   octx.fillRect(px, py, printW, printH);
   octx.restore();

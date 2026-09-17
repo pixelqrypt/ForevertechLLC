@@ -286,5 +286,13 @@ describe('FusionAI Component', () => {
       type: 'setComposite',
       value: 'soft-light',
     }));
+    expect(outOperations).toContainEqual(expect.objectContaining({
+      type: 'setComposite',
+      value: 'screen',
+    }));
+    expect(outOperations).toContainEqual(expect.objectContaining({
+      type: 'setAlpha',
+      value: 0.1,
+    }));
   });
 });
