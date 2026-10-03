@@ -1,8 +1,16 @@
 
 'use client';
 
-import { useState, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Sparkles, Upload, X, Loader2, Image as ImageIcon } from 'lucide-react';
+import {
+  buildDeathpunkPhrase,
+  createDefaultFusionShirtState,
+  getFocusSettings,
+  type FusionFocusMode,
+  type FusionShirtSide,
+  type FusionSideSettings,
+} from '@/lib/fusion-shirt-composer';
 
 interface FusionAIProps {
   prompt: string;
@@ -20,7 +28,51 @@ export function FusionAI({ prompt, baseImageUrl, onImageGenerated }: FusionAIPro
   const [error, setError] = useState<string | null>(null);
   const [saveMessage, setSaveMessage] = useState<string | null>(null);
   const [useUploadedOnly, setUseUploadedOnly] = useState(false);
+  const [shirtState, setShirtState] = useState(() => createDefaultFusionShirtState());
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const activeSide = shirtState.activeSide;
+  const sideSettings = shirtState[activeSide];
+
+  useEffect(() => {
+    setShirtState((prev) => ({
+      ...prev,
+      front: {
+        ...prev.front,
+        autoText: buildDeathpunkPhrase(prompt),
+      },
+      back: {
+        ...prev.back,
+        autoText: buildDeathpunkPhrase(`${prompt} back`),
+      },
+    }));
+  }, [prompt]);
+
+  const updateActiveSide = (nextSide: FusionShirtSide) => {
+    setShirtState((prev) => ({ ...prev, activeSide: nextSide }));
+  };
+
+  const updateSideSettings = <K extends keyof FusionSideSettings>(
+    key: K,
+    value: FusionSideSettings[K],
+  ) => {
+    setShirtState((prev) => ({
+      ...prev,
+      [prev.activeSide]: {
+        ...prev[prev.activeSide],
+        [key]: value,
+      },
+    }));
+  };
+
+  const updateFocusMode = (focusMode: FusionFocusMode) => {
+    setShirtState((prev) => ({
+      ...prev,
+      [prev.activeSide]: {
+        ...prev[prev.activeSide],
+        ...getFocusSettings(prev.activeSide, focusMode),
+      },
+    }));
+  };
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const selectedFiles = Array.from(e.target.files || []);
@@ -136,7 +188,7 @@ export function FusionAI({ prompt, baseImageUrl, onImageGenerated }: FusionAIPro
     try {
       setStatus('Blending with generated asset...');
       setProgress(0.15);
-      const fused = await fuseClientSide({ baseImageUrl, files, prompt });
+      const fused = await fuseClientSide({ baseImageUrl, files, prompt, settings: sideSettings });
       setProgress(1);
       setStatus('done');
       await finalizeImage(fused);
@@ -254,7 +306,7 @@ export function FusionAI({ prompt, baseImageUrl, onImageGenerated }: FusionAIPro
                 </div>
                 <div>
                   <h3 className="text-xl font-bold text-white">Image Fusion Studio</h3>
-                  <p className="text-xs text-gray-400">Fuse your images with AI prompts</p>
+                  <p className="text-xs text-gray-400">Tune focus and phrase layers without leaving Studio</p>
                 </div>
               </div>
               <button onClick={() => !isFusing && setIsOpen(false)} className="text-gray-400 hover:text-white transition-colors">
@@ -274,6 +326,136 @@ export function FusionAI({ prompt, baseImageUrl, onImageGenerated }: FusionAIPro
                   </div>
                 </div>
               )}
+
+              <div className="rounded-xl border border-gray-800 bg-gray-950/50 p-4 space-y-4">
+                <div className="grid grid-cols-2 gap-2">
+                  <button
+                    type="button"
+                    aria-label="Front side"
+                    aria-pressed={activeSide === 'front'}
+                    onClick={() => updateActiveSide('front')}
+                    className={getSegmentedButtonClass(activeSide === 'front')}
+                  >
+                    Front
+                  </button>
+                  <button
+                    type="button"
+                    aria-label="Back side"
+                    aria-pressed={activeSide === 'back'}
+                    onClick={() => updateActiveSide('back')}
+                    className={getSegmentedButtonClass(activeSide === 'back')}
+                  >
+                    Back
+                  </button>
+                </div>
+
+                <section aria-label="Blend Panel" className="space-y-3">
+                  <div>
+                    <h4 className="text-sm font-semibold text-white">Blend Panel</h4>
+                    <p className="text-xs text-gray-500">
+                      Keep the subject readable while deciding how much abstract art takes over the shirt area.
+                    </p>
+                  </div>
+                  <div className="grid grid-cols-3 gap-2">
+                    <button
+                      type="button"
+                      aria-label="Subject focus"
+                      aria-pressed={sideSettings.focusMode === 'subject'}
+                      onClick={() => updateFocusMode('subject')}
+                      className={getSegmentedButtonClass(sideSettings.focusMode === 'subject')}
+                    >
+                      Subject
+                    </button>
+                    <button
+                      type="button"
+                      aria-label="Balanced focus"
+                      aria-pressed={sideSettings.focusMode === 'balanced'}
+                      onClick={() => updateFocusMode('balanced')}
+                      className={getSegmentedButtonClass(sideSettings.focusMode === 'balanced')}
+                    >
+                      Balanced
+                    </button>
+                    <button
+                      type="button"
+                      aria-label="Background focus"
+                      aria-pressed={sideSettings.focusMode === 'background'}
+                      onClick={() => updateFocusMode('background')}
+                      className={getSegmentedButtonClass(sideSettings.focusMode === 'background')}
+                    >
+                      Background
+                    </button>
+                  </div>
+                </section>
+
+                <section aria-label="Text Panel" className="space-y-3">
+                  <div>
+                    <h4 className="text-sm font-semibold text-white">Text Panel</h4>
+                    <p className="text-xs text-gray-500">
+                      Swap between generated wording, your own phrase, or both for the active side.
+                    </p>
+                  </div>
+                  <div className="grid grid-cols-3 gap-2">
+                    <button
+                      type="button"
+                      aria-label="Auto phrase mode"
+                      aria-pressed={sideSettings.phraseMode === 'auto'}
+                      onClick={() => updateSideSettings('phraseMode', 'auto')}
+                      className={getSegmentedButtonClass(sideSettings.phraseMode === 'auto')}
+                    >
+                      Auto
+                    </button>
+                    <button
+                      type="button"
+                      aria-label="Manual phrase mode"
+                      aria-pressed={sideSettings.phraseMode === 'manual'}
+                      onClick={() => updateSideSettings('phraseMode', 'manual')}
+                      className={getSegmentedButtonClass(sideSettings.phraseMode === 'manual')}
+                    >
+                      Manual
+                    </button>
+                    <button
+                      type="button"
+                      aria-label="Both phrase mode"
+                      aria-pressed={sideSettings.phraseMode === 'both'}
+                      onClick={() => updateSideSettings('phraseMode', 'both')}
+                      className={getSegmentedButtonClass(sideSettings.phraseMode === 'both')}
+                    >
+                      Both
+                    </button>
+                  </div>
+
+                  {sideSettings.phraseMode !== 'manual' ? (
+                    <div className="space-y-2">
+                      <label className="block text-sm font-medium text-white" htmlFor={`${activeSide}-auto-phrase`}>
+                        Auto phrase
+                      </label>
+                      <input
+                        id={`${activeSide}-auto-phrase`}
+                        aria-label="Auto phrase"
+                        readOnly
+                        value={sideSettings.autoText}
+                        className="w-full rounded-lg border border-gray-700 bg-gray-950 px-3 py-2 text-white"
+                      />
+                    </div>
+                  ) : null}
+
+                  {sideSettings.phraseMode !== 'auto' ? (
+                    <div className="space-y-2">
+                      <label className="block text-sm font-medium text-white" htmlFor={`${activeSide}-manual-phrase`}>
+                        Manual phrase
+                      </label>
+                      <input
+                        id={`${activeSide}-manual-phrase`}
+                        aria-label="Manual phrase"
+                        value={sideSettings.manualText}
+                        onChange={(e) => updateSideSettings('manualText', e.target.value)}
+                        className="w-full rounded-lg border border-gray-700 bg-gray-950 px-3 py-2 text-white"
+                        placeholder="Type a short shirt phrase"
+                      />
+                    </div>
+                  ) : null}
+                </section>
+              </div>
 
               {/* Drag and Drop Zone */}
               <div
@@ -564,7 +746,17 @@ async function saveFusionImageToAccount(imageUrl: string, prompt: string): Promi
   return Boolean(res?.ok);
 }
 
-async function fuseClientSide({ baseImageUrl, files, prompt }: { baseImageUrl: string; files: File[]; prompt: string }) {
+async function fuseClientSide({
+  baseImageUrl,
+  files,
+  prompt,
+  settings,
+}: {
+  baseImageUrl: string;
+  files: File[];
+  prompt: string;
+  settings: FusionSideSettings;
+}) {
   const size = 1024;
   const baseBitmap = await loadBitmapFromUrl(baseImageUrl);
   const userBitmaps = await Promise.all(files.map(async (f) => await createImageBitmap(f)));
@@ -633,16 +825,16 @@ async function fuseClientSide({ baseImageUrl, files, prompt }: { baseImageUrl: s
   const centerFade = octx.createRadialGradient(
     px + printW / 2,
     py + printH / 2,
-    Math.min(printW, printH) * 0.04,
+    Math.min(printW, printH) * Math.max(0.04, settings.foregroundFadeInner * 0.24),
     px + printW / 2,
     py + printH / 2,
-    Math.max(printW, printH) * 0.52,
+    Math.max(printW, printH) * Math.max(0.42, settings.centerProtection * 0.62),
   );
   centerFade.addColorStop(0, 'rgba(255,255,255,0.28)');
   centerFade.addColorStop(0.55, 'rgba(255,255,255,0.12)');
   centerFade.addColorStop(1, 'rgba(255,255,255,0)');
   octx.globalCompositeOperation = 'screen';
-  octx.globalAlpha = 0.1;
+  octx.globalAlpha = settings.centerBlendAlpha;
   octx.fillStyle = centerFade;
   octx.fillRect(px, py, printW, printH);
   octx.restore();
@@ -653,9 +845,9 @@ async function fuseClientSide({ baseImageUrl, files, prompt }: { baseImageUrl: s
   const fgY = py + foregroundPad;
   const fgW = printW - foregroundPad * 2;
   const fgH = printH - foregroundPad * 2;
-  const fadeInner = Math.min(fgW, fgH) * 0.18;
-  const fadeOuter = Math.max(fgW, fgH) * 0.68;
-  const foregroundAlpha = userBitmaps.length <= 1 ? 0.75 : 0.82;
+  const fadeInner = Math.min(fgW, fgH) * settings.foregroundFadeInner;
+  const fadeOuter = Math.max(fgW, fgH) * settings.foregroundFadeOuter;
+  const foregroundAlpha = userBitmaps.length <= 1 ? settings.foregroundAlpha : Math.min(0.92, settings.foregroundAlpha + 0.07);
 
   for (let i = 0; i < userBitmaps.length; i++) {
     const bm = userBitmaps[i];
@@ -674,7 +866,7 @@ async function fuseClientSide({ baseImageUrl, files, prompt }: { baseImageUrl: s
       fadeOuter,
     );
     fade.addColorStop(0, 'rgba(0,0,0,1)');
-    fade.addColorStop(0.6, 'rgba(0,0,0,0.9)');
+    fade.addColorStop(Math.min(0.82, settings.centerProtection), 'rgba(0,0,0,0.9)');
     fade.addColorStop(1, 'rgba(0,0,0,0.42)');
     octx.globalCompositeOperation = 'destination-in';
     octx.fillStyle = fade;
@@ -692,7 +884,7 @@ async function fuseClientSide({ baseImageUrl, files, prompt }: { baseImageUrl: s
     unionRing.addColorStop(0.5, 'rgba(255,255,255,0.08)');
     unionRing.addColorStop(1, 'rgba(255,255,255,0.24)');
     octx.globalCompositeOperation = 'soft-light';
-    octx.globalAlpha = 0.16 * (0.92 ** i);
+    octx.globalAlpha = settings.unionRingAlpha * (0.92 ** i);
     drawCover(octx, design, fgX, fgY, fgW, fgH, size, size);
     octx.fillStyle = unionRing;
     octx.fillRect(fgX, fgY, fgW, fgH);
@@ -710,4 +902,13 @@ async function fuseClientSide({ baseImageUrl, files, prompt }: { baseImageUrl: s
   octx.restore();
 
   return await canvasToDataUrl(out);
+}
+
+function getSegmentedButtonClass(selected: boolean) {
+  return [
+    'rounded-lg border px-3 py-2 text-sm font-medium transition-colors',
+    selected
+      ? 'border-blue-400 bg-blue-500/20 text-white'
+      : 'border-gray-700 bg-gray-900 text-gray-300 hover:border-blue-500/40 hover:text-white',
+  ].join(' ');
 }

@@ -98,6 +98,61 @@ describe('FusionAI Component', () => {
     expect(screen.getByText(/Some files were rejected/i)).toBeInTheDocument();
   });
 
+  it('supports auto, manual, and both phrase modes', async () => {
+    render(
+      <FusionAI
+        prompt="violet ghost"
+        onImageGenerated={onImageGenerated}
+        baseImageUrl="http://example.com/base.png"
+      />
+    );
+
+    fireEvent.click(screen.getByText('Advanced Fusion Extension'));
+
+    expect(screen.getByRole('button', { name: 'Auto phrase mode' })).toHaveAttribute('aria-pressed', 'true');
+    expect(screen.getByLabelText('Auto phrase')).toHaveValue('Midnight Cathedral');
+    expect(screen.queryByLabelText('Manual phrase')).not.toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Manual phrase mode' }));
+    expect(screen.getByRole('button', { name: 'Manual phrase mode' })).toHaveAttribute('aria-pressed', 'true');
+    expect(screen.getByLabelText('Manual phrase')).toBeInTheDocument();
+    expect(screen.queryByLabelText('Auto phrase')).not.toBeInTheDocument();
+
+    fireEvent.change(screen.getByLabelText('Manual phrase'), { target: { value: 'Front Signal' } });
+    expect(screen.getByLabelText('Manual phrase')).toHaveValue('Front Signal');
+
+    fireEvent.click(screen.getByRole('button', { name: 'Both phrase mode' }));
+    expect(screen.getByRole('button', { name: 'Both phrase mode' })).toHaveAttribute('aria-pressed', 'true');
+    expect(screen.getByLabelText('Auto phrase')).toBeInTheDocument();
+    expect(screen.getByLabelText('Manual phrase')).toHaveValue('Front Signal');
+  });
+
+  it('defaults focus control to subject on front and balanced on back', () => {
+    render(
+      <FusionAI
+        prompt="violet ghost"
+        onImageGenerated={onImageGenerated}
+        baseImageUrl="http://example.com/base.png"
+      />
+    );
+
+    fireEvent.click(screen.getByText('Advanced Fusion Extension'));
+
+    expect(screen.getByRole('button', { name: 'Front side' })).toHaveAttribute('aria-pressed', 'true');
+    expect(screen.getByRole('button', { name: 'Subject focus' })).toHaveAttribute('aria-pressed', 'true');
+
+    fireEvent.click(screen.getByRole('button', { name: 'Back side' }));
+    expect(screen.getByRole('button', { name: 'Back side' })).toHaveAttribute('aria-pressed', 'true');
+    expect(screen.getByRole('button', { name: 'Balanced focus' })).toHaveAttribute('aria-pressed', 'true');
+
+    fireEvent.click(screen.getByRole('button', { name: 'Background focus' }));
+    expect(screen.getByRole('button', { name: 'Background focus' })).toHaveAttribute('aria-pressed', 'true');
+
+    fireEvent.click(screen.getByRole('button', { name: 'Front side' }));
+    expect(screen.getByRole('button', { name: 'Subject focus' })).toHaveAttribute('aria-pressed', 'true');
+    expect(screen.getByRole('button', { name: 'Background focus' })).toHaveAttribute('aria-pressed', 'false');
+  });
+
   it('initiates fusion process and shows progress', async () => {
     fetchMock.mockReset();
     fetchMock.mockImplementation((input: RequestInfo | URL) => {
