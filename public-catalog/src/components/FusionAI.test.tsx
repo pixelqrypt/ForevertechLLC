@@ -492,11 +492,24 @@ describe('FusionAI Component', () => {
       expect(onImageGenerated).toHaveBeenCalledWith('data:image/png;base64,AAAA');
     });
 
+    const designOperations = canvasRecords.find((record) => record.label === 'design')?.operations ?? [];
     const outOperations = canvasRecords.find((record) => record.label === 'out')?.operations ?? [];
     const foregroundDraw = outOperations.find((operation) =>
       operation.type === 'drawImage' && (operation.source as { __label?: string } | undefined)?.__label === 'user'
     );
 
+    expect(designOperations).toContainEqual(expect.objectContaining({
+      type: 'setAlpha',
+      value: 0.32,
+    }));
+    expect(designOperations).toContainEqual(expect.objectContaining({
+      type: 'setAlpha',
+      value: 0.2,
+    }));
+    expect(designOperations).toContainEqual(expect.objectContaining({
+      type: 'setAlpha',
+      value: 0.14,
+    }));
     expect(foregroundDraw).toMatchObject({
       composite: 'source-over',
       alpha: 0.68,

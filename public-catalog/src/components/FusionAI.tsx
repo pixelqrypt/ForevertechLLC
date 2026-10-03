@@ -696,6 +696,36 @@ function makeNoiseCanvas(size: number, seed: number) {
   return c;
 }
 
+function clampNumber(value: number, min: number, max: number) {
+  return Math.min(max, Math.max(min, value));
+}
+
+function roundToTwo(value: number) {
+  return Math.round(value * 100) / 100;
+}
+
+function getFusionBlendProfile(settings: FusionSideSettings, imageCount: number) {
+  const abstractLayerAlpha = roundToTwo(
+    clampNumber(
+      (imageCount <= 1 ? 1 : 0.96) - settings.foregroundAlpha,
+      imageCount <= 1 ? 0.18 : 0.14,
+      imageCount <= 1 ? 0.32 : 0.28,
+    ),
+  );
+  const noiseAlpha = roundToTwo(
+    clampNumber(0.06 + settings.centerBlendAlpha * 0.6 + settings.unionRingAlpha * 0.1, 0.14, 0.24),
+  );
+  const toneAlpha = roundToTwo(
+    clampNumber(0.08 + settings.centerBlendAlpha * 0.15 + settings.unionRingAlpha * 0.12, 0.1, 0.14),
+  );
+
+  return {
+    abstractLayerAlpha,
+    noiseAlpha,
+    toneAlpha,
+  };
+}
+
 async function canvasToDataUrl(canvas: HTMLCanvasElement): Promise<string> {
   const blob: Blob = await new Promise((resolve, reject) => {
     canvas.toBlob((b) => (b ? resolve(b) : reject(new Error('toBlob_failed'))), 'image/png');
@@ -760,6 +790,7 @@ async function fuseClientSide({
   const size = 1024;
   const baseBitmap = await loadBitmapFromUrl(baseImageUrl);
   const userBitmaps = await Promise.all(files.map(async (f) => await createImageBitmap(f)));
+  const blendProfile = getFusionBlendProfile(settings, userBitmaps.length);
 
   const design = document.createElement('canvas');
   design.width = size;
@@ -771,11 +802,10 @@ async function fuseClientSide({
 
   drawCover(dctx, baseBitmap, 0, 0, size, size, baseBitmap.width, baseBitmap.height);
 
-  const baseAlpha = userBitmaps.length <= 1 ? 0.18 : 0.14;
   for (let i = 0; i < userBitmaps.length; i++) {
     const bm = userBitmaps[i];
     dctx.save();
-    dctx.globalAlpha = baseAlpha * (0.9 ** i);
+    dctx.globalAlpha = blendProfile.abstractLayerAlpha * (0.9 ** i);
     dctx.globalCompositeOperation = i === 0 ? 'soft-light' : 'overlay';
     const pad = size * 0.04;
     drawContain(dctx, bm, pad, pad, size - pad * 2, size - pad * 2, bm.width, bm.height);
@@ -790,14 +820,14 @@ async function fuseClientSide({
 
   const noise = makeNoiseCanvas(160, seed);
   dctx.save();
-  dctx.globalAlpha = 0.18;
+  dctx.globalAlpha = blendProfile.noiseAlpha;
   dctx.globalCompositeOperation = 'soft-light';
   drawCover(dctx, noise, 0, 0, size, size, noise.width, noise.height);
   dctx.restore();
 
   dctx.save();
   dctx.globalCompositeOperation = 'multiply';
-  dctx.globalAlpha = 0.14;
+  dctx.globalAlpha = blendProfile.toneAlpha;
   const grad = dctx.createLinearGradient(0, 0, 0, size);
   grad.addColorStop(0, 'rgba(255,255,255,1)');
   grad.addColorStop(0.6, 'rgba(235,235,235,1)');
