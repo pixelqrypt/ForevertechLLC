@@ -98,6 +98,23 @@ describe('FusionAI Component', () => {
     expect(screen.getByText(/Some files were rejected/i)).toBeInTheDocument();
   });
 
+  it('shows the compact shirt editor panels after opening fusion', () => {
+    render(
+      <FusionAI
+        prompt="violet ghost"
+        onImageGenerated={onImageGenerated}
+        baseImageUrl="http://example.com/base.png"
+      />
+    );
+
+    fireEvent.click(screen.getByText('Advanced Fusion Extension'));
+
+    expect(screen.getByText('Blend Panel')).toBeInTheDocument();
+    expect(screen.getByText('Text Panel')).toBeInTheDocument();
+    expect(screen.getByText('Live Preview')).toBeInTheDocument();
+    expect(screen.getByText('Current side')).toBeInTheDocument();
+  });
+
   it('supports auto, manual, and both phrase modes', async () => {
     render(
       <FusionAI
