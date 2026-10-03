@@ -607,6 +607,7 @@ describe('FusionAI Component', () => {
       let currentAlpha = 1;
       let currentComposite = 'source-over';
       let currentFilter = 'none';
+      let currentFont = '16px system-ui';
       const makeGradient = (kind: 'linear' | 'radial') => ({
         addColorStop: vi.fn((offset: number, color: string) => {
           operations.push({ type: 'gradientStop', kind, offset, color });
@@ -646,6 +647,13 @@ describe('FusionAI Component', () => {
           return makeGradient('radial');
         }),
         fillRect: vi.fn(() => operations.push({ type: 'fillRect', alpha: currentAlpha, composite: currentComposite })),
+        measureText: vi.fn((text: string) => {
+          const fontSizeMatch = currentFont.match(/(\d+)px/);
+          const fontSize = fontSizeMatch ? Number(fontSizeMatch[1]) : 16;
+          return {
+            width: text.length * fontSize * 0.62,
+          } as TextMetrics;
+        }),
         beginPath: vi.fn(),
         moveTo: vi.fn(),
         arcTo: vi.fn(),
@@ -675,8 +683,11 @@ describe('FusionAI Component', () => {
           set: (value: unknown) => operations.push({ type: 'setFillStyle', value }),
         },
         font: {
-          get: () => '',
-          set: (value: string) => operations.push({ type: 'setFont', value }),
+          get: () => currentFont,
+          set: (value: string) => {
+            currentFont = value;
+            operations.push({ type: 'setFont', value });
+          },
         },
         textAlign: {
           get: () => 'start',
@@ -765,8 +776,9 @@ describe('FusionAI Component', () => {
     );
     fireEvent.click(screen.getByText('Advanced Fusion Extension'));
     fireEvent.click(screen.getByRole('button', { name: 'Manual phrase mode' }));
-    fireEvent.change(screen.getByLabelText('Manual phrase'), { target: { value: 'Front Signal' } });
-    fireEvent.click(screen.getByRole('button', { name: 'Both phrase mode' }));
+    fireEvent.change(screen.getByLabelText('Manual phrase'), {
+      target: { value: 'Front Signal Cathedral Bloom Horizon' },
+    });
 
     const file = new File(['portrait'], 'portrait.png', { type: 'image/png' });
     const fileInput = document.querySelector('input[type="file"]') as HTMLInputElement | null;
@@ -783,11 +795,19 @@ describe('FusionAI Component', () => {
     });
 
     const outOperations = canvasRecords.find((record) => record.label === 'out')?.operations ?? [];
+    const textOperations = outOperations.filter((operation) => operation.type === 'fillText');
+    const printLeft = Math.round((1024 - Math.round(1024 * 0.64)) / 2);
+    const printCenterX = printLeft + Math.round(1024 * 0.64) / 2;
+    const printTop = Math.round(1024 * 0.16);
+    const printBottom = printTop + Math.round(1024 * 0.64);
 
-    expect(outOperations).toContainEqual(expect.objectContaining({
-      type: 'fillText',
-      text: 'Front Signal',
-    }));
+    expect(textOperations.length).toBeGreaterThan(1);
+    expect(
+      textOperations.every((operation) => Math.abs(Number(operation.x) - printCenterX) < 0.01),
+    ).toBe(true);
+    expect(
+      textOperations.every((operation) => Number(operation.y) >= printTop && Number(operation.y) <= printBottom),
+    ).toBe(true);
   });
 
   it('auto-saves the fused image to the signed-in account gallery', async () => {
@@ -800,6 +820,7 @@ describe('FusionAI Component', () => {
 
     const makeCanvasRecord = (label: string) => {
       const operations: Array<Record<string, unknown>> = [];
+      let currentFont = '16px system-ui';
       const ctx = {
         save: vi.fn(),
         restore: vi.fn(),
@@ -812,6 +833,13 @@ describe('FusionAI Component', () => {
         createLinearGradient: vi.fn(() => ({ addColorStop: vi.fn() })),
         createRadialGradient: vi.fn(() => ({ addColorStop: vi.fn() })),
         fillRect: vi.fn(),
+        measureText: vi.fn((text: string) => {
+          const fontSizeMatch = currentFont.match(/(\d+)px/);
+          const fontSize = fontSizeMatch ? Number(fontSizeMatch[1]) : 16;
+          return {
+            width: text.length * fontSize * 0.62,
+          } as TextMetrics;
+        }),
         beginPath: vi.fn(),
         moveTo: vi.fn(),
         arcTo: vi.fn(),
@@ -835,8 +863,10 @@ describe('FusionAI Component', () => {
           set: () => undefined,
         },
         font: {
-          get: () => '',
-          set: () => undefined,
+          get: () => currentFont,
+          set: (value: string) => {
+            currentFont = value;
+          },
         },
         textAlign: {
           get: () => 'start',

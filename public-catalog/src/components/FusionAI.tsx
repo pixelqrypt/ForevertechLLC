@@ -722,36 +722,113 @@ function getFontFamily(fontStyle: FusionSideSettings['fontStyle']) {
   }
 }
 
+function measureTextWidth(ctx: CanvasRenderingContext2D, text: string, fontSize: number) {
+  if (typeof ctx.measureText === 'function') {
+    return ctx.measureText(text).width;
+  }
+
+  return text.length * fontSize * 0.62;
+}
+
+function wrapTextToWidth(
+  ctx: CanvasRenderingContext2D,
+  text: string,
+  maxWidth: number,
+  fontSize: number,
+) {
+  const words = text.trim().split(/\s+/).filter(Boolean);
+  if (words.length === 0) return [];
+
+  const lines: string[] = [];
+  let currentLine = words[0];
+
+  for (const word of words.slice(1)) {
+    const candidate = `${currentLine} ${word}`;
+    if (measureTextWidth(ctx, candidate, fontSize) <= maxWidth) {
+      currentLine = candidate;
+      continue;
+    }
+
+    lines.push(currentLine);
+    currentLine = word;
+  }
+
+  lines.push(currentLine);
+  return lines;
+}
+
 function drawFusionText(
   ctx: CanvasRenderingContext2D,
   settings: FusionSideSettings,
-  width: number,
-  height: number,
+  box: {
+    x: number;
+    y: number;
+    width: number;
+    height: number;
+  },
 ) {
-  const lines = getActiveTextLayers(settings)
+  const layers = getActiveTextLayers(settings)
     .map((line) => line.trim())
     .filter(Boolean);
 
-  if (lines.length === 0) return;
+  if (layers.length === 0) return;
 
-  const fontSize = Math.max(28, Math.round(width * settings.textSize));
-  const lineGap = Math.max(30, Math.round(fontSize * 0.92));
-  const placementY = {
-    top: height * 0.24,
-    center: height * 0.54,
-    bottom: height * 0.82,
+  const fontFamily = getFontFamily(settings.fontStyle);
+  const maxWidth = box.width * 0.82;
+  const maxHeight = box.height * 0.74;
+  const minFontSize = 18;
+  let fontSize = Math.max(minFontSize, Math.round(box.width * settings.textSize));
+  let wrappedLines = layers.map((line) => [line]);
+  let lineGap = Math.max(24, Math.round(fontSize * 0.92));
+  let sectionGap = Math.max(10, Math.round(fontSize * 0.34));
+  let blockHeight = 0;
+
+  while (fontSize >= minFontSize) {
+    ctx.font = `700 ${fontSize}px ${fontFamily}`;
+    lineGap = Math.max(24, Math.round(fontSize * 0.92));
+    sectionGap = Math.max(10, Math.round(fontSize * 0.34));
+    wrappedLines = layers.map((line) => wrapTextToWidth(ctx, line, maxWidth, fontSize));
+
+    const lineCount = wrappedLines.reduce((total, layerLines) => total + layerLines.length, 0);
+    const layerGapCount = Math.max(0, wrappedLines.length - 1);
+    blockHeight = fontSize + Math.max(0, lineCount - 1) * lineGap + layerGapCount * sectionGap;
+
+    const widestLine = Math.max(
+      ...wrappedLines.flat().map((line) => measureTextWidth(ctx, line, fontSize)),
+      0,
+    );
+    if (widestLine <= maxWidth && blockHeight <= maxHeight) break;
+
+    fontSize -= 2;
+  }
+
+  const topBound = box.y + box.height * 0.08;
+  const bottomBound = box.y + box.height * 0.92;
+  const availableHeight = bottomBound - topBound;
+  const unclampedTop = {
+    top: topBound,
+    center: topBound + (availableHeight - blockHeight) / 2,
+    bottom: bottomBound - blockHeight,
   }[settings.textPlacement];
-  const startY = placementY - lineGap * ((lines.length - 1) / 2);
+  const blockTop = clampNumber(unclampedTop, topBound, bottomBound - blockHeight);
 
   ctx.save();
   ctx.globalCompositeOperation = 'source-over';
   ctx.textAlign = 'center';
   ctx.textBaseline = 'middle';
-  ctx.font = `700 ${fontSize}px ${getFontFamily(settings.fontStyle)}`;
+  ctx.font = `700 ${fontSize}px ${fontFamily}`;
   ctx.fillStyle = 'rgba(255,255,255,0.96)';
+  let currentY = blockTop + fontSize / 2;
 
-  for (const [index, line] of lines.entries()) {
-    ctx.fillText(line, width / 2, startY + index * lineGap);
+  for (const [layerIndex, lines] of wrappedLines.entries()) {
+    for (const line of lines) {
+      ctx.fillText(line, box.x + box.width / 2, currentY);
+      currentY += lineGap;
+    }
+
+    if (layerIndex < wrappedLines.length - 1) {
+      currentY += sectionGap;
+    }
   }
 
   ctx.restore();
@@ -992,7 +1069,12 @@ async function fuseClientSide({
     octx.restore();
   }
 
-  drawFusionText(octx, settings, size, size);
+  drawFusionText(octx, settings, {
+    x: px,
+    y: py,
+    width: printW,
+    height: printH,
+  });
 
   octx.save();
   octx.globalCompositeOperation = 'source-over';
