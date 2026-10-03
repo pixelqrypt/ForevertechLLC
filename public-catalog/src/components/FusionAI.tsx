@@ -704,6 +704,59 @@ function roundToTwo(value: number) {
   return Math.round(value * 100) / 100;
 }
 
+function getActiveTextLayers(settings: FusionSideSettings) {
+  if (settings.phraseMode === 'auto') return [settings.autoText].filter(Boolean);
+  if (settings.phraseMode === 'manual') return [settings.manualText].filter(Boolean);
+  return [settings.autoText, settings.manualText].filter(Boolean);
+}
+
+function getFontFamily(fontStyle: FusionSideSettings['fontStyle']) {
+  switch (fontStyle) {
+    case 'chrome-sans':
+      return 'system-ui, sans-serif';
+    case 'riot-mono':
+      return 'ui-monospace, SFMono-Regular, monospace';
+    case 'signal-condensed':
+    default:
+      return '"Arial Narrow", "Helvetica Neue Condensed", system-ui, sans-serif';
+  }
+}
+
+function drawFusionText(
+  ctx: CanvasRenderingContext2D,
+  settings: FusionSideSettings,
+  width: number,
+  height: number,
+) {
+  const lines = getActiveTextLayers(settings)
+    .map((line) => line.trim())
+    .filter(Boolean);
+
+  if (lines.length === 0) return;
+
+  const fontSize = Math.max(28, Math.round(width * settings.textSize));
+  const lineGap = Math.max(30, Math.round(fontSize * 0.92));
+  const placementY = {
+    top: height * 0.24,
+    center: height * 0.54,
+    bottom: height * 0.82,
+  }[settings.textPlacement];
+  const startY = placementY - lineGap * ((lines.length - 1) / 2);
+
+  ctx.save();
+  ctx.globalCompositeOperation = 'source-over';
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.font = `700 ${fontSize}px ${getFontFamily(settings.fontStyle)}`;
+  ctx.fillStyle = 'rgba(255,255,255,0.96)';
+
+  for (const [index, line] of lines.entries()) {
+    ctx.fillText(line, width / 2, startY + index * lineGap);
+  }
+
+  ctx.restore();
+}
+
 function getFusionBlendProfile(settings: FusionSideSettings, imageCount: number) {
   const abstractLayerAlpha = roundToTwo(
     clampNumber(settings.abstractStrength, imageCount <= 1 ? 0.18 : 0.14, imageCount <= 1 ? 0.9 : 0.82),
@@ -938,6 +991,8 @@ async function fuseClientSide({
     octx.fillRect(fgX, fgY, fgW, fgH);
     octx.restore();
   }
+
+  drawFusionText(octx, settings, size, size);
 
   octx.save();
   octx.globalCompositeOperation = 'source-over';

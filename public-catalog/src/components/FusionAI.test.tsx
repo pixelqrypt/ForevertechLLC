@@ -201,6 +201,14 @@ describe('FusionAI Component', () => {
           alpha: currentAlpha,
           composite: currentComposite,
         })),
+        fillText: vi.fn((text: string, x: number, y: number) => operations.push({
+          type: 'fillText',
+          text,
+          x,
+          y,
+          alpha: currentAlpha,
+          composite: currentComposite,
+        })),
         createImageData: vi.fn((width: number, height: number) => ({
           data: new Uint8ClampedArray(width * height * 4),
         })),
@@ -241,6 +249,18 @@ describe('FusionAI Component', () => {
         fillStyle: {
           get: () => undefined,
           set: (value: unknown) => operations.push({ type: 'setFillStyle', value }),
+        },
+        font: {
+          get: () => '',
+          set: (value: string) => operations.push({ type: 'setFont', value }),
+        },
+        textAlign: {
+          get: () => 'start',
+          set: (value: CanvasTextAlign) => operations.push({ type: 'setTextAlign', value }),
+        },
+        textBaseline: {
+          get: () => 'alphabetic',
+          set: (value: CanvasTextBaseline) => operations.push({ type: 'setTextBaseline', value }),
         },
         strokeStyle: {
           get: () => undefined,
@@ -374,6 +394,15 @@ describe('FusionAI Component', () => {
           composite: currentComposite,
           filter: currentFilter,
         })),
+        fillText: vi.fn((text: string, x: number, y: number) => operations.push({
+          type: 'fillText',
+          text,
+          x,
+          y,
+          alpha: currentAlpha,
+          composite: currentComposite,
+          filter: currentFilter,
+        })),
         createImageData: vi.fn((width: number, height: number) => ({
           data: new Uint8ClampedArray(width * height * 4),
         })),
@@ -414,6 +443,18 @@ describe('FusionAI Component', () => {
         fillStyle: {
           get: () => undefined,
           set: (value: unknown) => operations.push({ type: 'setFillStyle', value }),
+        },
+        font: {
+          get: () => '',
+          set: (value: string) => operations.push({ type: 'setFont', value }),
+        },
+        textAlign: {
+          get: () => 'start',
+          set: (value: CanvasTextAlign) => operations.push({ type: 'setTextAlign', value }),
+        },
+        textBaseline: {
+          get: () => 'alphabetic',
+          set: (value: CanvasTextBaseline) => operations.push({ type: 'setTextBaseline', value }),
         },
         filter: {
           get: () => currentFilter,
@@ -560,6 +601,195 @@ describe('FusionAI Component', () => {
     }));
   });
 
+  it('renders text overlays into the fusion output', async () => {
+    const makeCanvasRecord = (label: string) => {
+      const operations: Array<Record<string, unknown>> = [];
+      let currentAlpha = 1;
+      let currentComposite = 'source-over';
+      let currentFilter = 'none';
+      const makeGradient = (kind: 'linear' | 'radial') => ({
+        addColorStop: vi.fn((offset: number, color: string) => {
+          operations.push({ type: 'gradientStop', kind, offset, color });
+        }),
+      });
+      const ctx = {
+        operations,
+        save: vi.fn(() => operations.push({ type: 'save' })),
+        restore: vi.fn(() => operations.push({ type: 'restore' })),
+        drawImage: vi.fn((source: unknown, ...args: unknown[]) => operations.push({
+          type: 'drawImage',
+          source,
+          args,
+          alpha: currentAlpha,
+          composite: currentComposite,
+          filter: currentFilter,
+        })),
+        fillText: vi.fn((text: string, x: number, y: number) => operations.push({
+          type: 'fillText',
+          text,
+          x,
+          y,
+          alpha: currentAlpha,
+          composite: currentComposite,
+          filter: currentFilter,
+        })),
+        createImageData: vi.fn((width: number, height: number) => ({
+          data: new Uint8ClampedArray(width * height * 4),
+        })),
+        putImageData: vi.fn(),
+        createLinearGradient: vi.fn((...args: number[]) => {
+          operations.push({ type: 'createGradient', kind: 'linear', args });
+          return makeGradient('linear');
+        }),
+        createRadialGradient: vi.fn((...args: number[]) => {
+          operations.push({ type: 'createGradient', kind: 'radial', args });
+          return makeGradient('radial');
+        }),
+        fillRect: vi.fn(() => operations.push({ type: 'fillRect', alpha: currentAlpha, composite: currentComposite })),
+        beginPath: vi.fn(),
+        moveTo: vi.fn(),
+        arcTo: vi.fn(),
+        closePath: vi.fn(),
+        clip: vi.fn(),
+        rect: vi.fn(),
+        stroke: vi.fn(),
+      } as unknown as CanvasRenderingContext2D & { operations: Array<Record<string, unknown>> };
+
+      Object.defineProperties(ctx, {
+        globalAlpha: {
+          get: () => currentAlpha,
+          set: (value: number) => {
+            currentAlpha = value;
+            operations.push({ type: 'setAlpha', value });
+          },
+        },
+        globalCompositeOperation: {
+          get: () => currentComposite,
+          set: (value: string) => {
+            currentComposite = value;
+            operations.push({ type: 'setComposite', value });
+          },
+        },
+        fillStyle: {
+          get: () => undefined,
+          set: (value: unknown) => operations.push({ type: 'setFillStyle', value }),
+        },
+        font: {
+          get: () => '',
+          set: (value: string) => operations.push({ type: 'setFont', value }),
+        },
+        textAlign: {
+          get: () => 'start',
+          set: (value: CanvasTextAlign) => operations.push({ type: 'setTextAlign', value }),
+        },
+        textBaseline: {
+          get: () => 'alphabetic',
+          set: (value: CanvasTextBaseline) => operations.push({ type: 'setTextBaseline', value }),
+        },
+        filter: {
+          get: () => currentFilter,
+          set: (value: string) => {
+            currentFilter = value;
+            operations.push({ type: 'setFilter', value });
+          },
+        },
+        strokeStyle: {
+          get: () => undefined,
+          set: (value: unknown) => operations.push({ type: 'setStrokeStyle', value }),
+        },
+        shadowBlur: {
+          get: () => 0,
+          set: (value: number) => operations.push({ type: 'setShadowBlur', value }),
+        },
+        shadowColor: {
+          get: () => undefined,
+          set: (value: string) => operations.push({ type: 'setShadowColor', value }),
+        },
+        lineWidth: {
+          get: () => 0,
+          set: (value: number) => operations.push({ type: 'setLineWidth', value }),
+        },
+        imageSmoothingEnabled: {
+          get: () => true,
+          set: () => undefined,
+        },
+        imageSmoothingQuality: {
+          get: () => 'high',
+          set: () => undefined,
+        },
+      });
+
+      const canvas = {
+        __label: label,
+        width: 0,
+        height: 0,
+        getContext: vi.fn(() => ctx),
+        toBlob: vi.fn((callback: BlobCallback) => callback(new Blob(['png'], { type: 'image/png' }))),
+      } as unknown as HTMLCanvasElement & { __label?: string };
+
+      return { label, canvas, operations };
+    };
+
+    const canvasRecords = ['design', 'noise', 'out'].map(makeCanvasRecord);
+    canvasQueue = [...canvasRecords];
+
+    const realCreateElement = document.createElement.bind(document);
+    vi.spyOn(document, 'createElement').mockImplementation(((...args: Parameters<typeof document.createElement>) => {
+      const [tagName] = args;
+      if (tagName === 'canvas') {
+        const nextCanvas = canvasQueue.shift();
+        if (!nextCanvas) {
+          throw new Error('unexpected_canvas_request');
+        }
+        return nextCanvas.canvas;
+      }
+      return realCreateElement(...args);
+    }) as typeof document.createElement);
+
+    const createImageBitmapMock = vi.fn()
+      .mockResolvedValueOnce({ width: 1024, height: 1024, __label: 'base' } as ImageBitmap)
+      .mockResolvedValueOnce({ width: 700, height: 900, __label: 'user' } as ImageBitmap);
+    vi.stubGlobal('createImageBitmap', createImageBitmapMock);
+
+    fetchMock.mockResolvedValue({
+      ok: true,
+      blob: () => Promise.resolve(new Blob(['base'], { type: 'image/png' })),
+    } as Response);
+
+    render(
+      <FusionAI
+        prompt="quantum aura portrait"
+        onImageGenerated={onImageGenerated}
+        baseImageUrl="http://example.com/base.png"
+      />
+    );
+    fireEvent.click(screen.getByText('Advanced Fusion Extension'));
+    fireEvent.click(screen.getByRole('button', { name: 'Manual phrase mode' }));
+    fireEvent.change(screen.getByLabelText('Manual phrase'), { target: { value: 'Front Signal' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Both phrase mode' }));
+
+    const file = new File(['portrait'], 'portrait.png', { type: 'image/png' });
+    const fileInput = document.querySelector('input[type="file"]') as HTMLInputElement | null;
+    expect(fileInput).not.toBeNull();
+
+    await waitFor(() => {
+      fireEvent.change(fileInput as HTMLInputElement, { target: { files: [file] } });
+    });
+
+    fireEvent.click(screen.getByText(/Fuse 1 Image with Prompt/i));
+
+    await waitFor(() => {
+      expect(onImageGenerated).toHaveBeenCalledWith('data:image/png;base64,AAAA');
+    });
+
+    const outOperations = canvasRecords.find((record) => record.label === 'out')?.operations ?? [];
+
+    expect(outOperations).toContainEqual(expect.objectContaining({
+      type: 'fillText',
+      text: 'Front Signal',
+    }));
+  });
+
   it('auto-saves the fused image to the signed-in account gallery', async () => {
     localStorage.setItem('user', JSON.stringify({
       id: 'user_123',
@@ -574,6 +804,7 @@ describe('FusionAI Component', () => {
         save: vi.fn(),
         restore: vi.fn(),
         drawImage: vi.fn(),
+        fillText: vi.fn(),
         createImageData: vi.fn((width: number, height: number) => ({
           data: new Uint8ClampedArray(width * height * 4),
         })),
@@ -601,6 +832,18 @@ describe('FusionAI Component', () => {
         },
         fillStyle: {
           get: () => undefined,
+          set: () => undefined,
+        },
+        font: {
+          get: () => '',
+          set: () => undefined,
+        },
+        textAlign: {
+          get: () => 'start',
+          set: () => undefined,
+        },
+        textBaseline: {
+          get: () => 'alphabetic',
           set: () => undefined,
         },
         strokeStyle: {
