@@ -1,18 +1,27 @@
 export type FusionShirtSide = 'front' | 'back';
 export type FusionPhraseMode = 'auto' | 'manual' | 'both';
 export type FusionFocusMode = 'subject' | 'balanced' | 'background';
+export type FusionFontStyle = 'chrome-sans' | 'signal-condensed' | 'riot-mono';
+export type FusionTextPlacement = 'top' | 'center' | 'bottom';
 
 export type FusionSideSettings = {
   focusMode: FusionFocusMode;
+  abstractStrength: number;
+  edgeFade: number;
+  glow: number;
+  backgroundBrightness: number;
   centerProtection: number;
-  centerBlendAlpha: number;
-  foregroundAlpha: number;
-  foregroundFadeInner: number;
-  foregroundFadeOuter: number;
-  unionRingAlpha: number;
+  scale: number;
+  verticalOffset: number;
   phraseMode: FusionPhraseMode;
   autoText: string;
   manualText: string;
+  fontStyle: FusionFontStyle;
+  textSize: number;
+  textTracking: number;
+  textOutline: number;
+  textGlow: number;
+  textPlacement: FusionTextPlacement;
 };
 
 export type FusionShirtState = {
@@ -21,8 +30,86 @@ export type FusionShirtState = {
   back: FusionSideSettings;
 };
 
+type FusionFocusBlendSettings = Pick<
+  FusionSideSettings,
+  | 'focusMode'
+  | 'abstractStrength'
+  | 'edgeFade'
+  | 'glow'
+  | 'backgroundBrightness'
+  | 'centerProtection'
+  | 'scale'
+  | 'verticalOffset'
+>;
+
 const ADJECTIVES = ['Neon', 'Chrome', 'Future', 'Midnight', 'Static', 'Ghost'];
 const NOUNS = ['Signal', 'Ritual', 'Horizon', 'Bloom', 'Circuit', 'Cathedral'];
+const FOCUS_PRESETS: Record<FusionShirtSide, Record<FusionFocusMode, FusionFocusBlendSettings>> = {
+  front: {
+    subject: {
+      focusMode: 'subject',
+      abstractStrength: 0.58,
+      edgeFade: 0.64,
+      glow: 0.32,
+      backgroundBrightness: 1.1,
+      centerProtection: 0.84,
+      scale: 1,
+      verticalOffset: 0,
+    },
+    balanced: {
+      focusMode: 'balanced',
+      abstractStrength: 0.68,
+      edgeFade: 0.7,
+      glow: 0.36,
+      backgroundBrightness: 1.14,
+      centerProtection: 0.72,
+      scale: 1.04,
+      verticalOffset: 0.03,
+    },
+    background: {
+      focusMode: 'background',
+      abstractStrength: 0.76,
+      edgeFade: 0.84,
+      glow: 0.42,
+      backgroundBrightness: 1.18,
+      centerProtection: 0.58,
+      scale: 1.08,
+      verticalOffset: 0.06,
+    },
+  },
+  back: {
+    subject: {
+      focusMode: 'subject',
+      abstractStrength: 0.62,
+      edgeFade: 0.66,
+      glow: 0.34,
+      backgroundBrightness: 1.08,
+      centerProtection: 0.76,
+      scale: 0.98,
+      verticalOffset: -0.02,
+    },
+    balanced: {
+      focusMode: 'balanced',
+      abstractStrength: 0.74,
+      edgeFade: 0.72,
+      glow: 0.38,
+      backgroundBrightness: 1.12,
+      centerProtection: 0.66,
+      scale: 1.02,
+      verticalOffset: 0.04,
+    },
+    background: {
+      focusMode: 'background',
+      abstractStrength: 0.82,
+      edgeFade: 0.88,
+      glow: 0.46,
+      backgroundBrightness: 1.18,
+      centerProtection: 0.52,
+      scale: 1.08,
+      verticalOffset: 0.08,
+    },
+  },
+};
 
 function hashSeed(input: string) {
   let hash = 2166136261;
@@ -39,40 +126,11 @@ export function buildDeathpunkPhrase(prompt: string) {
   return `${adjective} ${noun}`;
 }
 
-export function getFocusSettings(side: FusionShirtSide, focusMode: FusionFocusMode) {
-  if (focusMode === 'subject') {
-    return {
-      focusMode,
-      centerProtection: side === 'front' ? 0.84 : 0.76,
-      centerBlendAlpha: 0.1,
-      foregroundAlpha: side === 'front' ? 0.75 : 0.78,
-      foregroundFadeInner: 0.18,
-      foregroundFadeOuter: 0.68,
-      unionRingAlpha: 0.16,
-    };
-  }
-
-  if (focusMode === 'background') {
-    return {
-      focusMode,
-      centerProtection: side === 'front' ? 0.58 : 0.52,
-      centerBlendAlpha: 0.18,
-      foregroundAlpha: side === 'front' ? 0.64 : 0.68,
-      foregroundFadeInner: 0.12,
-      foregroundFadeOuter: 0.84,
-      unionRingAlpha: 0.28,
-    };
-  }
-
-  return {
-    focusMode,
-    centerProtection: side === 'front' ? 0.72 : 0.66,
-    centerBlendAlpha: 0.13,
-    foregroundAlpha: side === 'front' ? 0.7 : 0.74,
-    foregroundFadeInner: 0.15,
-    foregroundFadeOuter: 0.76,
-    unionRingAlpha: 0.22,
-  };
+export function getFocusSettings(
+  side: FusionShirtSide,
+  focusMode: FusionFocusMode,
+): FusionFocusBlendSettings {
+  return FOCUS_PRESETS[side][focusMode];
 }
 
 export function createDefaultFusionSideSettings(
@@ -86,6 +144,12 @@ export function createDefaultFusionSideSettings(
     phraseMode: 'auto',
     autoText: '',
     manualText: '',
+    fontStyle: side === 'front' ? 'signal-condensed' : 'riot-mono',
+    textSize: side === 'front' ? 0.14 : 0.18,
+    textTracking: 0.08,
+    textOutline: 0.35,
+    textGlow: 0.28,
+    textPlacement: side === 'front' ? 'bottom' : 'center',
   };
 }
 

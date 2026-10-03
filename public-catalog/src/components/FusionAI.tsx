@@ -706,23 +706,33 @@ function roundToTwo(value: number) {
 
 function getFusionBlendProfile(settings: FusionSideSettings, imageCount: number) {
   const abstractLayerAlpha = roundToTwo(
-    clampNumber(
-      (imageCount <= 1 ? 1 : 0.96) - settings.foregroundAlpha,
-      imageCount <= 1 ? 0.18 : 0.14,
-      imageCount <= 1 ? 0.32 : 0.28,
-    ),
+    clampNumber(settings.abstractStrength, imageCount <= 1 ? 0.18 : 0.14, imageCount <= 1 ? 0.9 : 0.82),
   );
   const noiseAlpha = roundToTwo(
-    clampNumber(0.06 + settings.centerBlendAlpha * 0.6 + settings.unionRingAlpha * 0.1, 0.14, 0.24),
+    clampNumber(settings.glow * 0.44 + (settings.backgroundBrightness - 1) * 0.8, 0.14, 0.24),
   );
   const toneAlpha = roundToTwo(
-    clampNumber(0.08 + settings.centerBlendAlpha * 0.15 + settings.unionRingAlpha * 0.12, 0.1, 0.14),
+    clampNumber(0.08 + (settings.backgroundBrightness - 1) * 0.3 + settings.glow * 0.05, 0.1, 0.14),
   );
+  const brightness = Math.max(100, Math.round(settings.backgroundBrightness * 100));
+  const centerBlendAlpha = roundToTwo(
+    clampNumber(settings.abstractStrength * 0.1 + settings.glow * 0.12 - settings.centerProtection * 0.05, 0.1, 0.18),
+  );
+  const foregroundAlpha = roundToTwo(
+    clampNumber(0.40875 + settings.centerProtection * 0.40625, 0.52, 0.78),
+  );
+  const glowBlur = Math.round(settings.glow * 60);
+  const glowColor = `rgba(255,255,255,${settings.glow})`;
 
   return {
     abstractLayerAlpha,
     noiseAlpha,
     toneAlpha,
+    brightness,
+    centerBlendAlpha,
+    foregroundAlpha,
+    glowBlur,
+    glowColor,
   };
 }
 
@@ -800,7 +810,9 @@ async function fuseClientSide({
   dctx.imageSmoothingEnabled = true;
   dctx.imageSmoothingQuality = 'high';
 
+  dctx.filter = `brightness(${blendProfile.brightness}%)`;
   drawCover(dctx, baseBitmap, 0, 0, size, size, baseBitmap.width, baseBitmap.height);
+  dctx.filter = 'none';
 
   for (let i = 0; i < userBitmaps.length; i++) {
     const bm = userBitmaps[i];
@@ -851,11 +863,13 @@ async function fuseClientSide({
 
   octx.save();
   clipRoundRect(octx, px, py, printW, printH, Math.round(size * 0.03));
+  octx.shadowColor = blendProfile.glowColor;
+  octx.shadowBlur = blendProfile.glowBlur;
   drawCover(octx, design, px, py, printW, printH, size, size);
   const centerFade = octx.createRadialGradient(
     px + printW / 2,
     py + printH / 2,
-    Math.min(printW, printH) * Math.max(0.04, settings.foregroundFadeInner * 0.24),
+    Math.min(printW, printH) * Math.max(0.04, (1 - settings.edgeFade) * 0.45),
     px + printW / 2,
     py + printH / 2,
     Math.max(printW, printH) * Math.max(0.42, settings.centerProtection * 0.62),
@@ -864,20 +878,24 @@ async function fuseClientSide({
   centerFade.addColorStop(0.55, 'rgba(255,255,255,0.12)');
   centerFade.addColorStop(1, 'rgba(255,255,255,0)');
   octx.globalCompositeOperation = 'screen';
-  octx.globalAlpha = settings.centerBlendAlpha;
+  octx.globalAlpha = blendProfile.centerBlendAlpha;
   octx.fillStyle = centerFade;
   octx.fillRect(px, py, printW, printH);
   octx.restore();
 
   // Keep the uploaded image visible in front while letting the abstract background show through the edges.
   const foregroundPad = Math.round(size * 0.02);
-  const fgX = px + foregroundPad;
-  const fgY = py + foregroundPad;
-  const fgW = printW - foregroundPad * 2;
-  const fgH = printH - foregroundPad * 2;
-  const fadeInner = Math.min(fgW, fgH) * settings.foregroundFadeInner;
-  const fadeOuter = Math.max(fgW, fgH) * settings.foregroundFadeOuter;
-  const foregroundAlpha = userBitmaps.length <= 1 ? settings.foregroundAlpha : Math.min(0.92, settings.foregroundAlpha + 0.07);
+  const baseFgW = printW - foregroundPad * 2;
+  const baseFgH = printH - foregroundPad * 2;
+  const fgW = baseFgW * settings.scale;
+  const fgH = baseFgH * settings.scale;
+  const fgX = px + (printW - fgW) / 2;
+  const fgY = py + (printH - fgH) / 2 + printH * settings.verticalOffset;
+  const fadeInner = Math.min(fgW, fgH) * (1 - settings.edgeFade);
+  const fadeOuter = Math.max(fgW, fgH) * settings.edgeFade;
+  const foregroundAlpha = userBitmaps.length <= 1
+    ? blendProfile.foregroundAlpha
+    : Math.min(0.92, blendProfile.foregroundAlpha + 0.07);
 
   for (let i = 0; i < userBitmaps.length; i++) {
     const bm = userBitmaps[i];
@@ -914,7 +932,7 @@ async function fuseClientSide({
     unionRing.addColorStop(0.5, 'rgba(255,255,255,0.08)');
     unionRing.addColorStop(1, 'rgba(255,255,255,0.24)');
     octx.globalCompositeOperation = 'soft-light';
-    octx.globalAlpha = settings.unionRingAlpha * (0.92 ** i);
+    octx.globalAlpha = settings.glow * (0.92 ** i);
     drawCover(octx, design, fgX, fgY, fgW, fgH, size, size);
     octx.fillStyle = unionRing;
     octx.fillRect(fgX, fgY, fgW, fgH);

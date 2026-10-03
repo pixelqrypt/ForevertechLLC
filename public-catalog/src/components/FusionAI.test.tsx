@@ -356,6 +356,7 @@ describe('FusionAI Component', () => {
       const operations: Array<Record<string, unknown>> = [];
       let currentAlpha = 1;
       let currentComposite = 'source-over';
+      let currentFilter = 'none';
       const makeGradient = (kind: 'linear' | 'radial') => ({
         addColorStop: vi.fn((offset: number, color: string) => {
           operations.push({ type: 'gradientStop', kind, offset, color });
@@ -365,22 +366,24 @@ describe('FusionAI Component', () => {
         operations,
         save: vi.fn(() => operations.push({ type: 'save' })),
         restore: vi.fn(() => operations.push({ type: 'restore' })),
-        drawImage: vi.fn((source: unknown) => operations.push({
+        drawImage: vi.fn((source: unknown, ...args: unknown[]) => operations.push({
           type: 'drawImage',
           source,
+          args,
           alpha: currentAlpha,
           composite: currentComposite,
+          filter: currentFilter,
         })),
         createImageData: vi.fn((width: number, height: number) => ({
           data: new Uint8ClampedArray(width * height * 4),
         })),
         putImageData: vi.fn(),
-        createLinearGradient: vi.fn(() => {
-          operations.push({ type: 'createGradient', kind: 'linear' });
+        createLinearGradient: vi.fn((...args: number[]) => {
+          operations.push({ type: 'createGradient', kind: 'linear', args });
           return makeGradient('linear');
         }),
-        createRadialGradient: vi.fn(() => {
-          operations.push({ type: 'createGradient', kind: 'radial' });
+        createRadialGradient: vi.fn((...args: number[]) => {
+          operations.push({ type: 'createGradient', kind: 'radial', args });
           return makeGradient('radial');
         }),
         fillRect: vi.fn(() => operations.push({ type: 'fillRect', alpha: currentAlpha, composite: currentComposite })),
@@ -412,9 +415,24 @@ describe('FusionAI Component', () => {
           get: () => undefined,
           set: (value: unknown) => operations.push({ type: 'setFillStyle', value }),
         },
+        filter: {
+          get: () => currentFilter,
+          set: (value: string) => {
+            currentFilter = value;
+            operations.push({ type: 'setFilter', value });
+          },
+        },
         strokeStyle: {
           get: () => undefined,
           set: (value: unknown) => operations.push({ type: 'setStrokeStyle', value }),
+        },
+        shadowBlur: {
+          get: () => 0,
+          set: (value: number) => operations.push({ type: 'setShadowBlur', value }),
+        },
+        shadowColor: {
+          get: () => undefined,
+          set: (value: string) => operations.push({ type: 'setShadowColor', value }),
         },
         lineWidth: {
           get: () => 0,
@@ -497,30 +515,42 @@ describe('FusionAI Component', () => {
     const foregroundDraw = outOperations.find((operation) =>
       operation.type === 'drawImage' && (operation.source as { __label?: string } | undefined)?.__label === 'user'
     );
+    const edgeFadeGradient = outOperations.find((operation) =>
+      operation.type === 'createGradient' &&
+      operation.kind === 'radial' &&
+      Array.isArray(operation.args) &&
+      Math.abs(Number(operation.args[2]) - 79.7) < 0.1
+    );
 
     expect(designOperations).toContainEqual(expect.objectContaining({
       type: 'setAlpha',
-      value: 0.32,
+      value: 0.82,
+    }));
+    expect(designOperations).toContainEqual(expect.objectContaining({
+      type: 'setFilter',
+      value: 'brightness(118%)',
     }));
     expect(designOperations).toContainEqual(expect.objectContaining({
       type: 'setAlpha',
-      value: 0.2,
-    }));
-    expect(designOperations).toContainEqual(expect.objectContaining({
-      type: 'setAlpha',
-      value: 0.14,
+      value: 0.24,
     }));
     expect(foregroundDraw).toMatchObject({
       composite: 'source-over',
-      alpha: 0.68,
+      alpha: 0.62,
+      args: [254.2, 211.79999999999998, 516.6, 664.2],
     });
     expect(outOperations).toContainEqual(expect.objectContaining({
-      type: 'setAlpha',
-      value: 0.18,
+      type: 'setShadowBlur',
+      value: 28,
     }));
     expect(outOperations).toContainEqual(expect.objectContaining({
+      type: 'setShadowColor',
+      value: 'rgba(255,255,255,0.46)',
+    }));
+    expect(edgeFadeGradient).toBeDefined();
+    expect(outOperations).toContainEqual(expect.objectContaining({
       type: 'setAlpha',
-      value: 0.28,
+      value: 0.46,
     }));
     expect(outOperations).toContainEqual(expect.objectContaining({
       type: 'gradientStop',
