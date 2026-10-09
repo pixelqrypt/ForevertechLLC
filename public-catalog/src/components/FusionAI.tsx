@@ -111,6 +111,14 @@ export function FusionAI({ prompt, baseImageUrl, onImageGenerated }: FusionAIPro
     setPreviews(prev => prev.filter((_, i) => i !== index));
   };
 
+  const finalizeImage = async (imageUrl: string) => {
+    onImageGenerated(imageUrl);
+    const didSave = await saveFusionImageToAccount(imageUrl, prompt);
+    if (didSave) setSaveMessage('Saved to your account');
+    setIsFusing(false);
+    setIsOpen(false);
+  };
+
   const startFusion = async () => {
     if (files.length === 0) return;
 
@@ -119,14 +127,6 @@ export function FusionAI({ prompt, baseImageUrl, onImageGenerated }: FusionAIPro
     setProgress(0);
     setError(null);
     setSaveMessage(null);
-
-    const finalizeImage = async (imageUrl: string) => {
-      onImageGenerated(imageUrl);
-      const didSave = await saveFusionImageToAccount(imageUrl, prompt);
-      if (didSave) setSaveMessage('Saved to your account');
-      setIsFusing(false);
-      setIsOpen(false);
-    };
 
     if (useUploadedOnly) {
       try {
