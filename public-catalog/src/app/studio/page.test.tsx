@@ -30,8 +30,13 @@ vi.mock('../../components/FusionAI', () => ({
     onImageGenerated: (url: string) => void;
   }) => (
     <div data-testid="fusion-ai-stub">
-      <button type="button" onClick={() => onImageGenerated('https://example.com/fused-image.png')}>
-        Emit fused image
+      <button type="button">Advanced Fusion Extension</button>
+      <button
+        type="button"
+        data-testid="fusion-ai-emit-image"
+        onClick={() => onImageGenerated('https://example.com/fused-image.png')}
+      >
+        Emit fused image callback
       </button>
       <div data-testid="fusion-ai-prompt">{prompt}</div>
       <div data-testid="fusion-ai-base-image">{baseImageUrl ?? ''}</div>
@@ -156,6 +161,8 @@ describe('StudioPage calendar date range', () => {
   it('wires the Studio prompt and generated image state into FusionAI', async () => {
     await renderStudioPage();
 
+    expect(screen.getByRole('button', { name: 'Advanced Fusion Extension' })).toBeInTheDocument();
+
     const promptInput = screen.getByPlaceholderText(
       'Describe the image and post content you want to generate...',
     ) as HTMLTextAreaElement;
@@ -163,7 +170,7 @@ describe('StudioPage calendar date range', () => {
 
     expect(screen.getByTestId('fusion-ai-prompt')).toHaveTextContent('neon tiger storm');
 
-    fireEvent.click(screen.getByRole('button', { name: 'Emit fused image' }));
+    fireEvent.click(screen.getByTestId('fusion-ai-emit-image'));
 
     await waitFor(() => {
       expect(screen.getByTestId('fusion-ai-base-image')).toHaveTextContent(
