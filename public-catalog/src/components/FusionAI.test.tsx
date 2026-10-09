@@ -51,19 +51,63 @@ describe('FusionAI Component', () => {
     vi.unstubAllGlobals();
   });
 
-  it('opens Fusion inside a modal and hides it when closed', () => {
+  it('moves focus into the Fusion modal and restores it to the trigger when closed', async () => {
     render(<FusionAI prompt="test prompt" onImageGenerated={onImageGenerated} />);
+    const triggerButton = screen.getByRole('button', { name: 'Advanced Fusion Extension' });
+    triggerButton.focus();
 
     expect(screen.queryByRole('dialog', { name: /image fusion studio/i })).not.toBeInTheDocument();
 
-    fireEvent.click(screen.getByText('Advanced Fusion Extension'));
+    fireEvent.click(triggerButton);
 
     expect(screen.getByRole('dialog', { name: /image fusion studio/i })).toBeInTheDocument();
     expect(screen.getByText('Image Fusion Studio')).toBeInTheDocument();
+    const closeButton = screen.getByRole('button', { name: /close fusion modal/i });
 
-    fireEvent.click(screen.getByRole('button', { name: /close fusion modal/i }));
+    await waitFor(() => {
+      expect(closeButton).toHaveFocus();
+    });
+
+    fireEvent.click(closeButton);
 
     expect(screen.queryByRole('dialog', { name: /image fusion studio/i })).not.toBeInTheDocument();
+    expect(triggerButton).toHaveFocus();
+  });
+
+  it('keeps tab focus trapped inside the Fusion modal', async () => {
+    render(
+      <FusionAI
+        prompt="a valid prompt"
+        onImageGenerated={onImageGenerated}
+        baseImageUrl="http://example.com/base.png"
+      />
+    );
+
+    fireEvent.click(screen.getByRole('button', { name: 'Advanced Fusion Extension' }));
+
+    const closeButton = screen.getByRole('button', { name: /close fusion modal/i });
+    await waitFor(() => {
+      expect(closeButton).toHaveFocus();
+    });
+
+    const file = new File(['(⌐□_□)'], 'tab-test.png', { type: 'image/png' });
+    const fileInput = document.querySelector('input[type="file"]') as HTMLInputElement | null;
+    expect(fileInput).not.toBeNull();
+
+    await waitFor(() => {
+      fireEvent.change(fileInput as HTMLInputElement, { target: { files: [file] } });
+    });
+
+    const fuseButton = screen.getByRole('button', { name: /Fuse 1 Image with Prompt/i });
+    expect(fuseButton).not.toBeDisabled();
+
+    fuseButton.focus();
+    fireEvent.keyDown(document, { key: 'Tab' });
+    expect(closeButton).toHaveFocus();
+
+    closeButton.focus();
+    fireEvent.keyDown(document, { key: 'Tab', shiftKey: true });
+    expect(fuseButton).toHaveFocus();
   });
 
   it('disables the fuse button when no prompt or files are provided', () => {

@@ -29,7 +29,11 @@ export function FusionAI({ prompt, baseImageUrl, onImageGenerated }: FusionAIPro
   const [saveMessage, setSaveMessage] = useState<string | null>(null);
   const [useUploadedOnly, setUseUploadedOnly] = useState(false);
   const [shirtState, setShirtState] = useState(() => createDefaultFusionShirtState());
+  const triggerButtonRef = useRef<HTMLButtonElement>(null);
+  const dialogRef = useRef<HTMLDivElement>(null);
+  const closeButtonRef = useRef<HTMLButtonElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const restoreFocusRef = useRef<HTMLElement | null>(null);
   const activeSide = shirtState.activeSide;
   const sideSettings = shirtState[activeSide];
   const previewImageSrc = previews[0] ?? null;
@@ -49,6 +53,55 @@ export function FusionAI({ prompt, baseImageUrl, onImageGenerated }: FusionAIPro
       },
     }));
   }, [prompt]);
+
+  useEffect(() => {
+    if (!isOpen) {
+      if (restoreFocusRef.current && restoreFocusRef.current.isConnected) {
+        restoreFocusRef.current.focus();
+      }
+      restoreFocusRef.current = null;
+      return;
+    }
+
+    restoreFocusRef.current = document.activeElement instanceof HTMLElement
+      ? document.activeElement
+      : triggerButtonRef.current;
+    closeButtonRef.current?.focus();
+
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key !== 'Tab') return;
+
+      const dialog = dialogRef.current;
+      if (!dialog) return;
+
+      const focusableElements = getFocusableElements(dialog);
+      if (focusableElements.length === 0) {
+        event.preventDefault();
+        dialog.focus();
+        return;
+      }
+
+      const firstFocusable = focusableElements[0];
+      const lastFocusable = focusableElements[focusableElements.length - 1];
+      const activeElement = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+
+      if (event.shiftKey) {
+        if (!activeElement || activeElement === firstFocusable || !dialog.contains(activeElement)) {
+          event.preventDefault();
+          lastFocusable.focus();
+        }
+        return;
+      }
+
+      if (activeElement === lastFocusable) {
+        event.preventDefault();
+        firstFocusable.focus();
+      }
+    };
+
+    document.addEventListener('keydown', handleKeyDown);
+    return () => document.removeEventListener('keydown', handleKeyDown);
+  }, [isOpen]);
 
   const updateActiveSide = (nextSide: FusionShirtSide) => {
     setShirtState((prev) => ({ ...prev, activeSide: nextSide }));
@@ -286,6 +339,7 @@ export function FusionAI({ prompt, baseImageUrl, onImageGenerated }: FusionAIPro
   return (
     <div className="mt-6">
       <button
+        ref={triggerButtonRef}
         type="button"
         aria-expanded={isOpen}
         aria-haspopup="dialog"
@@ -306,10 +360,12 @@ export function FusionAI({ prompt, baseImageUrl, onImageGenerated }: FusionAIPro
       {isOpen && (
         <div className="fixed inset-0 z-[90] flex items-center justify-center bg-black/70 p-4">
           <div
+            ref={dialogRef}
             id={editorPanelId}
             role="dialog"
             aria-modal="true"
             aria-labelledby="fusion-modal-title"
+            tabIndex={-1}
             className="max-h-[90vh] w-full max-w-6xl overflow-hidden rounded-2xl border border-gray-700 bg-gray-900 shadow-2xl shadow-blue-950/20"
           >
             <div className="flex flex-wrap items-center justify-between gap-3 border-b border-gray-800 px-4 py-4 sm:px-6">
@@ -323,6 +379,7 @@ export function FusionAI({ prompt, baseImageUrl, onImageGenerated }: FusionAIPro
                 </div>
               </div>
               <button
+                ref={closeButtonRef}
                 type="button"
                 aria-label="Close fusion modal"
                 onClick={() => !isFusing && setIsOpen(false)}
@@ -1226,4 +1283,12 @@ function getSegmentedButtonClass(selected: boolean) {
       ? 'border-blue-400 bg-blue-500/20 text-white'
       : 'border-gray-700 bg-gray-900 text-gray-300 hover:border-blue-500/40 hover:text-white',
   ].join(' ');
+}
+
+function getFocusableElements(container: HTMLElement) {
+  return Array.from(
+    container.querySelectorAll<HTMLElement>(
+      'button:not([disabled]), [href], input:not([disabled]):not([type="hidden"]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])',
+    ),
+  ).filter((element) => !element.hasAttribute('disabled') && element.getAttribute('aria-hidden') !== 'true');
 }
