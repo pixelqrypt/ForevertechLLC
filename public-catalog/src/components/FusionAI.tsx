@@ -377,15 +377,15 @@ export function FusionAI({ prompt, baseImageUrl, onImageGenerated }: FusionAIPro
           <div
             data-testid="fusion-modal-backdrop"
             className="absolute inset-0 bg-black/70"
-          />
-          <div
-            data-testid="fusion-modal-overlay"
-            className="relative flex h-full items-center justify-center p-4"
             onClick={(event) => {
               if (event.target === event.currentTarget) {
                 handleRequestCloseModal();
               }
             }}
+          />
+          <div
+            data-testid="fusion-modal-overlay"
+            className="relative flex h-full items-center justify-center p-4"
           >
             <div
               ref={dialogRef}

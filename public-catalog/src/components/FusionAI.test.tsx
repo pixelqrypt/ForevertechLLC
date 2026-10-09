@@ -174,7 +174,7 @@ describe('FusionAI Component', () => {
     expect(screen.getByTestId('fusion-editor-grid')).toBeInTheDocument();
   });
 
-  it('closes the Fusion modal on Escape and outside overlay click when idle', () => {
+  it('closes the Fusion modal on Escape and backdrop click when idle', () => {
     render(<FusionAI prompt="test prompt" onImageGenerated={onImageGenerated} />);
 
     fireEvent.click(screen.getByText('Advanced Fusion Extension'));
@@ -184,11 +184,11 @@ describe('FusionAI Component', () => {
     expect(screen.queryByRole('dialog', { name: /image fusion studio/i })).not.toBeInTheDocument();
 
     fireEvent.click(screen.getByText('Advanced Fusion Extension'));
-    fireEvent.click(screen.getByTestId('fusion-modal-overlay'));
+    fireEvent.click(screen.getByTestId('fusion-modal-backdrop'));
     expect(screen.queryByRole('dialog', { name: /image fusion studio/i })).not.toBeInTheDocument();
   });
 
-  it('does not close the Fusion modal from trigger, overlay, close button, or Escape while fusion is actively processing', async () => {
+  it('does not close the Fusion modal from trigger, backdrop, close button, or Escape while fusion is actively processing', async () => {
     fetchMock.mockImplementation((input: RequestInfo | URL) => {
       const url = typeof input === 'string' ? input : input instanceof URL ? input.toString() : (input as Request).url;
       if (url.startsWith('/api/fuse')) {
@@ -229,7 +229,7 @@ describe('FusionAI Component', () => {
     fireEvent.keyDown(document, { key: 'Escape' });
     expect(screen.getByRole('dialog', { name: /image fusion studio/i })).toBeInTheDocument();
 
-    fireEvent.click(screen.getByTestId('fusion-modal-overlay'));
+    fireEvent.click(screen.getByTestId('fusion-modal-backdrop'));
     expect(screen.getByRole('dialog', { name: /image fusion studio/i })).toBeInTheDocument();
 
     fireEvent.click(screen.getByRole('button', { name: 'Advanced Fusion Extension' }));
