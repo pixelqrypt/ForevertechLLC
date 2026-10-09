@@ -69,6 +69,13 @@ export function FusionAI({ prompt, baseImageUrl, onImageGenerated }: FusionAIPro
     closeButtonRef.current?.focus();
 
     const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        if (!isFusing) {
+          setIsOpen(false);
+        }
+        return;
+      }
+
       if (event.key !== 'Tab') return;
 
       const dialog = dialogRef.current;
@@ -101,7 +108,7 @@ export function FusionAI({ prompt, baseImageUrl, onImageGenerated }: FusionAIPro
 
     document.addEventListener('keydown', handleKeyDown);
     return () => document.removeEventListener('keydown', handleKeyDown);
-  }, [isOpen]);
+  }, [isOpen, isFusing]);
 
   const updateActiveSide = (nextSide: FusionShirtSide) => {
     setShirtState((prev) => ({ ...prev, activeSide: nextSide }));
@@ -358,57 +365,72 @@ export function FusionAI({ prompt, baseImageUrl, onImageGenerated }: FusionAIPro
       ) : null}
 
       {isOpen && (
-        <div className="fixed inset-0 z-[90] flex items-center justify-center bg-black/70 p-4">
+        <div className="fixed inset-0 z-[90]">
           <div
-            ref={dialogRef}
-            id={editorPanelId}
-            role="dialog"
-            aria-modal="true"
-            aria-labelledby="fusion-modal-title"
-            tabIndex={-1}
-            className="flex max-h-[90vh] w-full max-w-6xl flex-col overflow-hidden rounded-2xl border border-gray-700 bg-gray-900 shadow-2xl shadow-blue-950/20"
+            data-testid="fusion-modal-backdrop"
+            className="absolute inset-0 bg-black/70"
+            onClick={() => {
+              if (!isFusing) {
+                setIsOpen(false);
+              }
+            }}
+          />
+          <div
+            className="relative flex h-full items-center justify-center p-4"
+            onClick={(event) => {
+              event.stopPropagation();
+            }}
           >
-            <div className="shrink-0 border-b border-gray-800 px-4 py-4 sm:px-6">
-              <div className="flex flex-wrap items-center justify-between gap-3">
-              <div className="flex items-center gap-3">
-                <div className="rounded-lg bg-blue-600/20 p-2">
-                  <Sparkles className="w-6 h-6 text-blue-400" />
+            <div
+              ref={dialogRef}
+              id={editorPanelId}
+              role="dialog"
+              aria-modal="true"
+              aria-labelledby="fusion-modal-title"
+              tabIndex={-1}
+              className="flex max-h-[90vh] w-full max-w-6xl flex-col overflow-hidden rounded-2xl border border-gray-700 bg-gray-900 shadow-2xl shadow-blue-950/20"
+            >
+              <div className="shrink-0 border-b border-gray-800 px-4 py-4 sm:px-6">
+                <div className="flex flex-wrap items-center justify-between gap-3">
+                <div className="flex items-center gap-3">
+                  <div className="rounded-lg bg-blue-600/20 p-2">
+                    <Sparkles className="w-6 h-6 text-blue-400" />
+                  </div>
+                  <div>
+                    <h3 id="fusion-modal-title" className="text-lg font-bold text-white sm:text-xl">Image Fusion Studio</h3>
+                    <p className="text-xs text-gray-400">Compact same-page shirt composer with front/back phrase control.</p>
+                  </div>
                 </div>
-                <div>
-                  <h3 id="fusion-modal-title" className="text-lg font-bold text-white sm:text-xl">Image Fusion Studio</h3>
-                  <p className="text-xs text-gray-400">Compact same-page shirt composer with front/back phrase control.</p>
+                <button
+                  ref={closeButtonRef}
+                  type="button"
+                  aria-label="Close fusion modal"
+                  onClick={() => !isFusing && setIsOpen(false)}
+                  className="inline-flex items-center gap-2 rounded-lg border border-gray-700 bg-gray-950 px-3 py-2 text-sm font-medium text-gray-300 transition-colors hover:border-blue-500/40 hover:text-white"
+                >
+                  <X className="w-4 h-4" />
+                  Close
+                </button>
                 </div>
               </div>
-              <button
-                ref={closeButtonRef}
-                type="button"
-                aria-label="Close fusion modal"
-                onClick={() => !isFusing && setIsOpen(false)}
-                className="inline-flex items-center gap-2 rounded-lg border border-gray-700 bg-gray-950 px-3 py-2 text-sm font-medium text-gray-300 transition-colors hover:border-blue-500/40 hover:text-white"
-              >
-                <X className="w-4 h-4" />
-                Close
-              </button>
-              </div>
-            </div>
 
-            <div data-testid="fusion-modal-body" className="min-h-0 overflow-y-auto px-4 py-4 sm:px-6 sm:py-6">
-              <div
-                data-testid="fusion-editor-grid"
-                className="grid gap-6 xl:grid-cols-[minmax(0,1.2fr)_minmax(300px,0.8fr)]"
-              >
-              <div className="space-y-5">
-              {baseImageUrl && (
-                <div className="rounded-xl border border-gray-800 bg-gray-950/40 p-4">
-                  <div className="flex items-center gap-2 text-xs font-semibold text-gray-300">
-                    <ImageIcon className="w-4 h-4 text-blue-400" />
-                    Using Generated Asset
+              <div data-testid="fusion-modal-body" className="min-h-0 overflow-y-auto px-4 py-4 sm:px-6 sm:py-6">
+                <div
+                  data-testid="fusion-editor-grid"
+                  className="grid gap-6 xl:grid-cols-[minmax(0,1.2fr)_minmax(300px,0.8fr)]"
+                >
+                <div className="space-y-5">
+                {baseImageUrl && (
+                  <div className="rounded-xl border border-gray-800 bg-gray-950/40 p-4">
+                    <div className="flex items-center gap-2 text-xs font-semibold text-gray-300">
+                      <ImageIcon className="w-4 h-4 text-blue-400" />
+                      Using Generated Asset
+                    </div>
+                    <div className="mt-3 aspect-video overflow-hidden rounded-lg border border-gray-800 bg-black/40">
+                      <img src={normalizeUrl(baseImageUrl)} alt="Generated asset" className="h-full w-full object-contain" />
+                    </div>
                   </div>
-                  <div className="mt-3 aspect-video overflow-hidden rounded-lg border border-gray-800 bg-black/40">
-                    <img src={normalizeUrl(baseImageUrl)} alt="Generated asset" className="h-full w-full object-contain" />
-                  </div>
-                </div>
-              )}
+                )}
 
               <div className="rounded-xl border border-gray-800 bg-gray-950/50 p-4 space-y-4">
                 <div className="flex flex-wrap items-center justify-between gap-3">
@@ -754,7 +776,8 @@ export function FusionAI({ prompt, baseImageUrl, onImageGenerated }: FusionAIPro
                     {useUploadedOnly ? 'Uploaded-only mode' : baseImageUrl ? 'Generated asset ready' : 'Generate asset first'}
                   </div>
                 </div>
-              </section>
+                </section>
+                </div>
               </div>
             </div>
           </div>

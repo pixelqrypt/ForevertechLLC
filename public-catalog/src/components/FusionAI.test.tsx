@@ -174,6 +174,20 @@ describe('FusionAI Component', () => {
     expect(screen.getByTestId('fusion-editor-grid')).toBeInTheDocument();
   });
 
+  it('closes the Fusion modal on Escape and backdrop click when idle', () => {
+    render(<FusionAI prompt="test prompt" onImageGenerated={onImageGenerated} />);
+
+    fireEvent.click(screen.getByText('Advanced Fusion Extension'));
+    expect(screen.getByRole('dialog', { name: /image fusion studio/i })).toBeInTheDocument();
+
+    fireEvent.keyDown(document, { key: 'Escape' });
+    expect(screen.queryByRole('dialog', { name: /image fusion studio/i })).not.toBeInTheDocument();
+
+    fireEvent.click(screen.getByText('Advanced Fusion Extension'));
+    fireEvent.click(screen.getByTestId('fusion-modal-backdrop'));
+    expect(screen.queryByRole('dialog', { name: /image fusion studio/i })).not.toBeInTheDocument();
+  });
+
   it('supports auto, manual, and both phrase modes', async () => {
     render(
       <FusionAI
