@@ -188,6 +188,54 @@ describe('FusionAI Component', () => {
     expect(screen.queryByRole('dialog', { name: /image fusion studio/i })).not.toBeInTheDocument();
   });
 
+  it('does not close the Fusion modal from trigger, overlay, close button, or Escape while fusion is actively processing', async () => {
+    fetchMock.mockImplementation((input: RequestInfo | URL) => {
+      const url = typeof input === 'string' ? input : input instanceof URL ? input.toString() : (input as Request).url;
+      if (url.startsWith('/api/fuse')) {
+        return Promise.resolve({ ok: true, json: () => Promise.resolve({ jobId: 'test-job-123' }) } as Response);
+      }
+      return Promise.resolve({ ok: false, status: 500 } as Response);
+    });
+
+    render(
+      <FusionAI
+        prompt="a valid prompt"
+        onImageGenerated={onImageGenerated}
+        baseImageUrl="http://example.com/base.png"
+      />
+    );
+    fireEvent.click(screen.getByText('Advanced Fusion Extension'));
+
+    const file = new File(['(⌐□_□)'], 'test.png', { type: 'image/png' });
+    const fileInput = document.querySelector('input[type="file"]') as HTMLInputElement | null;
+    expect(fileInput).not.toBeNull();
+
+    await waitFor(() => {
+      fireEvent.change(fileInput as HTMLInputElement, { target: { files: [file] } });
+    });
+
+    fireEvent.click(screen.getByText(/Fuse 1 Image with Prompt/i));
+
+    await waitFor(() => {
+      expect(webSocketSpy).toHaveBeenCalledWith('ws://127.0.0.1:8000/progress/test-job-123');
+    });
+
+    const dialog = screen.getByRole('dialog', { name: /image fusion studio/i });
+    expect(dialog).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('button', { name: /close fusion modal/i }));
+    expect(screen.getByRole('dialog', { name: /image fusion studio/i })).toBeInTheDocument();
+
+    fireEvent.keyDown(document, { key: 'Escape' });
+    expect(screen.getByRole('dialog', { name: /image fusion studio/i })).toBeInTheDocument();
+
+    fireEvent.click(screen.getByTestId('fusion-modal-overlay'));
+    expect(screen.getByRole('dialog', { name: /image fusion studio/i })).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Advanced Fusion Extension' }));
+    expect(screen.getByRole('dialog', { name: /image fusion studio/i })).toBeInTheDocument();
+  });
+
   it('supports auto, manual, and both phrase modes', async () => {
     render(
       <FusionAI

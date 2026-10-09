@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { Sparkles, Upload, X, Loader2, Image as ImageIcon } from 'lucide-react';
 import {
   buildDeathpunkPhrase,
@@ -39,6 +39,16 @@ export function FusionAI({ prompt, baseImageUrl, onImageGenerated }: FusionAIPro
   const previewImageSrc = previews[0] ?? null;
   const activeTextLayers = getActiveTextLayers(sideSettings);
   const editorPanelId = 'fusion-editor-panel';
+  const handleOpenModal = useCallback(() => {
+    if (!isFusing) {
+      setIsOpen(true);
+    }
+  }, [isFusing]);
+  const handleRequestCloseModal = useCallback(() => {
+    if (!isFusing) {
+      setIsOpen(false);
+    }
+  }, [isFusing]);
 
   useEffect(() => {
     setShirtState((prev) => ({
@@ -70,9 +80,7 @@ export function FusionAI({ prompt, baseImageUrl, onImageGenerated }: FusionAIPro
 
     const handleKeyDown = (event: KeyboardEvent) => {
       if (event.key === 'Escape') {
-        if (!isFusing) {
-          setIsOpen(false);
-        }
+        handleRequestCloseModal();
         return;
       }
 
@@ -108,7 +116,7 @@ export function FusionAI({ prompt, baseImageUrl, onImageGenerated }: FusionAIPro
 
     document.addEventListener('keydown', handleKeyDown);
     return () => document.removeEventListener('keydown', handleKeyDown);
-  }, [isOpen, isFusing]);
+  }, [handleRequestCloseModal, isOpen]);
 
   const updateActiveSide = (nextSide: FusionShirtSide) => {
     setShirtState((prev) => ({ ...prev, activeSide: nextSide }));
@@ -351,7 +359,7 @@ export function FusionAI({ prompt, baseImageUrl, onImageGenerated }: FusionAIPro
         aria-expanded={isOpen}
         aria-haspopup="dialog"
         aria-controls={editorPanelId}
-        onClick={() => !isFusing && setIsOpen(true)}
+        onClick={handleOpenModal}
         className="w-full py-4 rounded-xl font-bold bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white transition-all shadow-lg shadow-blue-900/20 flex items-center justify-center gap-2 group border border-blue-400/20"
       >
         <Sparkles className="w-5 h-5 group-hover:animate-pulse" />
@@ -374,8 +382,8 @@ export function FusionAI({ prompt, baseImageUrl, onImageGenerated }: FusionAIPro
             data-testid="fusion-modal-overlay"
             className="relative flex h-full items-center justify-center p-4"
             onClick={(event) => {
-              if (event.target === event.currentTarget && !isFusing) {
-                setIsOpen(false);
+              if (event.target === event.currentTarget) {
+                handleRequestCloseModal();
               }
             }}
           >
@@ -406,7 +414,7 @@ export function FusionAI({ prompt, baseImageUrl, onImageGenerated }: FusionAIPro
                   ref={closeButtonRef}
                   type="button"
                   aria-label="Close fusion modal"
-                  onClick={() => !isFusing && setIsOpen(false)}
+                  onClick={handleRequestCloseModal}
                   className="inline-flex items-center gap-2 rounded-lg border border-gray-700 bg-gray-950 px-3 py-2 text-sm font-medium text-gray-300 transition-colors hover:border-blue-500/40 hover:text-white"
                 >
                   <X className="w-4 h-4" />
