@@ -369,16 +369,14 @@ export function FusionAI({ prompt, baseImageUrl, onImageGenerated }: FusionAIPro
           <div
             data-testid="fusion-modal-backdrop"
             className="absolute inset-0 bg-black/70"
-            onClick={() => {
-              if (!isFusing) {
-                setIsOpen(false);
-              }
-            }}
           />
           <div
+            data-testid="fusion-modal-overlay"
             className="relative flex h-full items-center justify-center p-4"
             onClick={(event) => {
-              event.stopPropagation();
+              if (event.target === event.currentTarget && !isFusing) {
+                setIsOpen(false);
+              }
             }}
           >
             <div
@@ -389,6 +387,9 @@ export function FusionAI({ prompt, baseImageUrl, onImageGenerated }: FusionAIPro
               aria-labelledby="fusion-modal-title"
               tabIndex={-1}
               className="flex max-h-[90vh] w-full max-w-6xl flex-col overflow-hidden rounded-2xl border border-gray-700 bg-gray-900 shadow-2xl shadow-blue-950/20"
+              onClick={(event) => {
+                event.stopPropagation();
+              }}
             >
               <div className="shrink-0 border-b border-gray-800 px-4 py-4 sm:px-6">
                 <div className="flex flex-wrap items-center justify-between gap-3">
