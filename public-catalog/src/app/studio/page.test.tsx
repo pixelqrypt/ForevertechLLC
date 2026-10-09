@@ -20,7 +20,19 @@ vi.mock('../../components/DataDashboardButton', () => ({
 }));
 
 vi.mock('../../components/FusionAI', () => ({
-  FusionAI: () => <div>FusionAI</div>,
+  FusionAI: ({
+    prompt,
+    baseImageUrl,
+  }: {
+    prompt: string;
+    baseImageUrl?: string | null;
+  }) => (
+    <div data-testid="fusion-ai-stub">
+      <button type="button">Advanced Fusion Extension</button>
+      <div data-testid="fusion-ai-prompt">{prompt}</div>
+      {baseImageUrl ? <div data-testid="fusion-ai-base-image">base image ready</div> : null}
+    </div>
+  ),
 }));
 
 vi.mock('../../components/LatestAIImage', () => ({
@@ -135,6 +147,14 @@ describe('StudioPage calendar date range', () => {
     expect(screen.getByText('Creator Studio')).toBeDefined();
     expect(screen.getByText('AI Asset Generator')).toBeDefined();
     expect(screen.getByPlaceholderText('Describe the image and post content you want to generate...')).toBeDefined();
+  });
+
+  it('keeps the advanced fusion trigger visible without rendering the full editor inline', async () => {
+    await renderStudioPage();
+
+    expect(screen.getByRole('button', { name: 'Advanced Fusion Extension' })).toBeInTheDocument();
+    expect(screen.queryByText('Image Fusion Studio')).not.toBeInTheDocument();
+    expect(screen.queryByText('Blend Panel')).not.toBeInTheDocument();
   });
 
   it('disables generate button until prompt is entered', async () => {
