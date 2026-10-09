@@ -51,12 +51,19 @@ describe('FusionAI Component', () => {
     vi.unstubAllGlobals();
   });
 
-  it('renders the trigger button and opens the modal', () => {
+  it('opens Fusion inside a modal and hides it when closed', () => {
     render(<FusionAI prompt="test prompt" onImageGenerated={onImageGenerated} />);
-    const triggerButton = screen.getByText('Advanced Fusion Extension');
-    expect(triggerButton).toBeInTheDocument();
-    fireEvent.click(triggerButton);
+
+    expect(screen.queryByRole('dialog', { name: /image fusion studio/i })).not.toBeInTheDocument();
+
+    fireEvent.click(screen.getByText('Advanced Fusion Extension'));
+
+    expect(screen.getByRole('dialog', { name: /image fusion studio/i })).toBeInTheDocument();
     expect(screen.getByText('Image Fusion Studio')).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('button', { name: /close fusion modal/i }));
+
+    expect(screen.queryByRole('dialog', { name: /image fusion studio/i })).not.toBeInTheDocument();
   });
 
   it('disables the fuse button when no prompt or files are provided', () => {
