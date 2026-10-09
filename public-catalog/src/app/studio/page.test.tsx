@@ -23,14 +23,18 @@ vi.mock('../../components/FusionAI', () => ({
   FusionAI: ({
     prompt,
     baseImageUrl,
+    onImageGenerated,
   }: {
     prompt: string;
     baseImageUrl?: string | null;
+    onImageGenerated: (url: string) => void;
   }) => (
     <div data-testid="fusion-ai-stub">
-      <button type="button">Advanced Fusion Extension</button>
+      <button type="button" onClick={() => onImageGenerated('https://example.com/fused-image.png')}>
+        Emit fused image
+      </button>
       <div data-testid="fusion-ai-prompt">{prompt}</div>
-      {baseImageUrl ? <div data-testid="fusion-ai-base-image">base image ready</div> : null}
+      <div data-testid="fusion-ai-base-image">{baseImageUrl ?? ''}</div>
     </div>
   ),
 }));
@@ -149,12 +153,23 @@ describe('StudioPage calendar date range', () => {
     expect(screen.getByPlaceholderText('Describe the image and post content you want to generate...')).toBeDefined();
   });
 
-  it('keeps the advanced fusion trigger visible without rendering the full editor inline', async () => {
+  it('wires the Studio prompt and generated image state into FusionAI', async () => {
     await renderStudioPage();
 
-    expect(screen.getByRole('button', { name: 'Advanced Fusion Extension' })).toBeInTheDocument();
-    expect(screen.queryByText('Image Fusion Studio')).not.toBeInTheDocument();
-    expect(screen.queryByText('Blend Panel')).not.toBeInTheDocument();
+    const promptInput = screen.getByPlaceholderText(
+      'Describe the image and post content you want to generate...',
+    ) as HTMLTextAreaElement;
+    fireEvent.change(promptInput, { target: { value: 'neon tiger storm' } });
+
+    expect(screen.getByTestId('fusion-ai-prompt')).toHaveTextContent('neon tiger storm');
+
+    fireEvent.click(screen.getByRole('button', { name: 'Emit fused image' }));
+
+    await waitFor(() => {
+      expect(screen.getByTestId('fusion-ai-base-image')).toHaveTextContent(
+        'https://example.com/fused-image.png',
+      );
+    });
   });
 
   it('disables generate button until prompt is entered', async () => {
