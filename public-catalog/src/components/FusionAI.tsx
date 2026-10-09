@@ -366,9 +366,10 @@ export function FusionAI({ prompt, baseImageUrl, onImageGenerated }: FusionAIPro
             aria-modal="true"
             aria-labelledby="fusion-modal-title"
             tabIndex={-1}
-            className="max-h-[90vh] w-full max-w-6xl overflow-hidden rounded-2xl border border-gray-700 bg-gray-900 shadow-2xl shadow-blue-950/20"
+            className="flex max-h-[90vh] w-full max-w-6xl flex-col overflow-hidden rounded-2xl border border-gray-700 bg-gray-900 shadow-2xl shadow-blue-950/20"
           >
-            <div className="flex flex-wrap items-center justify-between gap-3 border-b border-gray-800 px-4 py-4 sm:px-6">
+            <div className="shrink-0 border-b border-gray-800 px-4 py-4 sm:px-6">
+              <div className="flex flex-wrap items-center justify-between gap-3">
               <div className="flex items-center gap-3">
                 <div className="rounded-lg bg-blue-600/20 p-2">
                   <Sparkles className="w-6 h-6 text-blue-400" />
@@ -388,9 +389,14 @@ export function FusionAI({ prompt, baseImageUrl, onImageGenerated }: FusionAIPro
                 <X className="w-4 h-4" />
                 Close
               </button>
+              </div>
             </div>
 
-            <div className="grid gap-6 overflow-y-auto p-4 sm:p-6 xl:grid-cols-[minmax(0,1.2fr)_minmax(300px,0.8fr)]">
+            <div data-testid="fusion-modal-body" className="min-h-0 overflow-y-auto px-4 py-4 sm:px-6 sm:py-6">
+              <div
+                data-testid="fusion-editor-grid"
+                className="grid gap-6 xl:grid-cols-[minmax(0,1.2fr)_minmax(300px,0.8fr)]"
+              >
               <div className="space-y-5">
               {baseImageUrl && (
                 <div className="rounded-xl border border-gray-800 bg-gray-950/40 p-4">
@@ -749,6 +755,7 @@ export function FusionAI({ prompt, baseImageUrl, onImageGenerated }: FusionAIPro
                   </div>
                 </div>
               </section>
+              </div>
             </div>
           </div>
         </div>

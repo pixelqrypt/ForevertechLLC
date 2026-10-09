@@ -149,7 +149,7 @@ describe('FusionAI Component', () => {
     expect(screen.getByText(/Some files were rejected/i)).toBeInTheDocument();
   });
 
-  it('shows the compact shirt editor panels after opening fusion', () => {
+  it('keeps only the trigger inline until the modal opens and renders the editor inside a scrollable body', () => {
     render(
       <FusionAI
         prompt="violet ghost"
@@ -158,12 +158,20 @@ describe('FusionAI Component', () => {
       />
     );
 
+    expect(screen.queryByText('Blend Panel')).not.toBeInTheDocument();
+    expect(screen.queryByText('Text Panel')).not.toBeInTheDocument();
+    expect(screen.queryByText('Live Preview')).not.toBeInTheDocument();
+
     fireEvent.click(screen.getByText('Advanced Fusion Extension'));
 
     expect(screen.getByText('Blend Panel')).toBeInTheDocument();
     expect(screen.getByText('Text Panel')).toBeInTheDocument();
     expect(screen.getByText('Live Preview')).toBeInTheDocument();
     expect(screen.getByText('Current side')).toBeInTheDocument();
+
+    const modalBody = screen.getByTestId('fusion-modal-body');
+    expect(modalBody).toHaveClass('overflow-y-auto');
+    expect(screen.getByTestId('fusion-editor-grid')).toBeInTheDocument();
   });
 
   it('supports auto, manual, and both phrase modes', async () => {
