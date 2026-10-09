@@ -178,7 +178,9 @@ describe('FusionAI Component', () => {
     render(<FusionAI prompt="test prompt" onImageGenerated={onImageGenerated} />);
 
     fireEvent.click(screen.getByText('Advanced Fusion Extension'));
-    expect(screen.getByRole('dialog', { name: /image fusion studio/i })).toBeInTheDocument();
+    const dialog = screen.getByRole('dialog', { name: /image fusion studio/i });
+    const backdropSurface = screen.getByTestId('fusion-modal-backdrop');
+    expect(backdropSurface).toContainElement(dialog);
 
     fireEvent.keyDown(document, { key: 'Escape' });
     expect(screen.queryByRole('dialog', { name: /image fusion studio/i })).not.toBeInTheDocument();
@@ -221,6 +223,8 @@ describe('FusionAI Component', () => {
     });
 
     const dialog = screen.getByRole('dialog', { name: /image fusion studio/i });
+    const backdropSurface = screen.getByTestId('fusion-modal-backdrop');
+    expect(backdropSurface).toContainElement(dialog);
     expect(dialog).toBeInTheDocument();
 
     fireEvent.click(screen.getByRole('button', { name: /close fusion modal/i }));

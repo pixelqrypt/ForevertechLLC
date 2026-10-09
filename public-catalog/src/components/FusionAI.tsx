@@ -373,32 +373,27 @@ export function FusionAI({ prompt, baseImageUrl, onImageGenerated }: FusionAIPro
       ) : null}
 
       {isOpen && (
-        <div className="fixed inset-0 z-[90]">
+        <div
+          data-testid="fusion-modal-backdrop"
+          className="fixed inset-0 z-[90] flex items-center justify-center bg-black/70 p-4"
+          onClick={(event) => {
+            if (event.target === event.currentTarget) {
+              handleRequestCloseModal();
+            }
+          }}
+        >
           <div
-            data-testid="fusion-modal-backdrop"
-            className="absolute inset-0 bg-black/70"
+            ref={dialogRef}
+            id={editorPanelId}
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="fusion-modal-title"
+            tabIndex={-1}
+            className="flex max-h-[90vh] w-full max-w-6xl flex-col overflow-hidden rounded-2xl border border-gray-700 bg-gray-900 shadow-2xl shadow-blue-950/20"
             onClick={(event) => {
-              if (event.target === event.currentTarget) {
-                handleRequestCloseModal();
-              }
+              event.stopPropagation();
             }}
-          />
-          <div
-            data-testid="fusion-modal-overlay"
-            className="relative flex h-full items-center justify-center p-4"
           >
-            <div
-              ref={dialogRef}
-              id={editorPanelId}
-              role="dialog"
-              aria-modal="true"
-              aria-labelledby="fusion-modal-title"
-              tabIndex={-1}
-              className="flex max-h-[90vh] w-full max-w-6xl flex-col overflow-hidden rounded-2xl border border-gray-700 bg-gray-900 shadow-2xl shadow-blue-950/20"
-              onClick={(event) => {
-                event.stopPropagation();
-              }}
-            >
               <div className="shrink-0 border-b border-gray-800 px-4 py-4 sm:px-6">
                 <div className="flex flex-wrap items-center justify-between gap-3">
                 <div className="flex items-center gap-3">
@@ -789,7 +784,6 @@ export function FusionAI({ prompt, baseImageUrl, onImageGenerated }: FusionAIPro
                 </div>
               </div>
             </div>
-          </div>
         </div>
       )}
     </div>
